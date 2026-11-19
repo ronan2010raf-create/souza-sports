@@ -357,7 +357,10 @@ begin
     for v_moves in
       select t.mv
       from jsonb_array_elements(p_data->'moves') as t(mv)
-      where not ((v_old_data->'moves') @> jsonb_build_array(t.mv))
+      where not exists (
+        select 1 from jsonb_array_elements(v_old_data->'moves') as oldm(oldmove)
+        where oldm.oldmove->>'id' = t.mv->>'id'
+      )
     loop
       if v_moves->>'type' not in ('sale','entry') then
         raise exception 'Acesso restrito: colaboradores podem registrar apenas vendas e entradas.';
@@ -392,7 +395,10 @@ begin
         ),0)
         into v_delta
         from jsonb_array_elements(p_data->'moves') as t(mv)
-        where not ((v_old_data->'moves') @> jsonb_build_array(t.mv))
+        where not exists (
+          select 1 from jsonb_array_elements(v_old_data->'moves') as oldm(oldmove)
+          where oldm.oldmove->>'id' = t.mv->>'id'
+        )
           and t.mv->>'productId' = v_product->>'id'
           and t.mv->>'size' = v_size;
 
