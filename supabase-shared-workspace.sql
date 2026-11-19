@@ -455,7 +455,7 @@ begin
         raise exception 'Produto não encontrado no estoque compartilhado.';
       end if;
 
-      foreach v_size in array array['P','M','G','GG','XG','2XL','3XL','4XL']
+      foreach v_size in array array['P','M','G','GG','XG','2XL','3XL','4XL','16','18','20','22','24','26','28']
       loop
         v_old_qty := coalesce(nullif(v_old_product->'qty'->>v_size,'')::integer,0);
         v_new_qty := coalesce(nullif(v_product->'qty'->>v_size,'')::integer,0);
