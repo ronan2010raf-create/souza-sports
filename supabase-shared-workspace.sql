@@ -280,7 +280,7 @@ returns timestamptz
 language plpgsql
 security definer
 set search_path = public, auth, pg_temp
-as $
+as $savefn$
 declare
   v_uid uuid := auth.uid();
   v_workspace uuid;
@@ -418,7 +418,7 @@ begin
 
   return v_new_updated;
 end;
-$;
+$savefn$;
 
 revoke all on function public.save_souza_workspace_data(jsonb,timestamptz) from public, anon;
 grant execute on function public.save_souza_workspace_data(jsonb,timestamptz) to authenticated;
