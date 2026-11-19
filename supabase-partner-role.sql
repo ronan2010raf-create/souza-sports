@@ -287,7 +287,7 @@ begin
       if coalesce(nullif(v_moves->>'qty','')::integer,0) <= 0 then
         raise exception 'A quantidade da movimentação deve ser maior que zero.';
       end if;
-      if v_moves->>'size' not in ('P','M','G','GG','XG','2XL','3XL','4XL') then
+      if v_moves->>'size' not in ('P','M','G','GG','XG','2XL','3XL','4XL','16','18','20','22','24','26','28') then
         raise exception 'Tamanho inválido na movimentação.';
       end if;
       if not exists (
@@ -310,7 +310,7 @@ begin
         raise exception 'Produto não encontrado no estoque compartilhado.';
       end if;
 
-      foreach v_size in array array['P','M','G','GG','XG','2XL','3XL','4XL']
+      foreach v_size in array array['P','M','G','GG','XG','2XL','3XL','4XL','16','18','20','22','24','26','28']
       loop
         v_old_qty := coalesce(nullif(v_old_product->'qty'->>v_size,'')::integer,0);
         v_new_qty := coalesce(nullif(v_product->'qty'->>v_size,'')::integer,0);
