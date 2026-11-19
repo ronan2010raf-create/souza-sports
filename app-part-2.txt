@@ -1,0 +1,41 @@
+tton class="tab" data-tab="reports">Relatórios</button><button class="tab" data-tab="history">Histórico</button><button class="tab" data-tab="backup">Backup</button>
+</nav>
+<section id="stock" class="section active">
+ <div class="row"><h2>Meu estoque</h2><button class="btn" onclick="showTab('add')">＋ Nova camisa</button></div>
+ <input class="search" id="search" placeholder="Buscar modelo, time ou coleção..." oninput="renderProducts()">
+ <div class="grid2"><select id="filterTeam" onchange="renderProducts()"><option value="">Todos os times / coleções</option></select><select id="filterKind" onchange="renderProducts()"><option value="">Todos os tipos</option><option>Torcedor</option><option>Jogador</option><option>Retrô</option><option>Basquete</option><option>Outro</option></select></div>
+ <div id="products"></div>
+</section>
+<section id="add" class="section"><h2 id="formTitle">Cadastrar camisa</h2><div class="panel">
+<input type="hidden" id="editId">
+<label>Nome / identificação do modelo *</label><input id="name" placeholder="Ex.: Real Madrid titular 2026">
+<div class="grid2"><div><label>Time / coleção</label><input id="team" placeholder="Ex.: Real Madrid"></div><div><label>Tipo</label><select id="kind"><option>Torcedor</option><option>Jogador</option><option>Retrô</option><option>Basquete</option><option>Outro</option></select></div></div>
+<label>Foto da camisa</label><input type="file" id="photo" accept="image/*"><div id="photoPreview"></div><div class="muted">A foto é reduzida para ocupar menos espaço no aparelho.</div>
+<div class="grid2"><div><label>Preço de custo unitário (R$)</label><input id="cost" type="number" min="0" step=".01" placeholder="0,00"></div><div><label>Preço de venda (R$)</label><input id="price" type="number" min="0" step=".01" placeholder="0,00"></div></div>
+<label>Quantidade inicial por tamanho</label><div class="sizes" id="sizeInputs"></div>
+<div class="note">Tamanhos controlados individualmente: P, M, G, GG, XG, 2XL, 3XL e 4XL. Em edição, alterar quantidades gera movimentação de ajuste.</div>
+<div class="form-actions"><button class="btn secondary" onclick="resetForm()">Limpar</button><button class="btn green" onclick="saveProduct()">Salvar modelo</button></div></div></section>
+<section id="sale" class="section"><h2>Registrar venda</h2><div class="panel">
+<label>Modelo *</label><select id="saleProduct" onchange="updateSaleSizes()"><option value="">Selecione uma camisa</option></select>
+<label>Tamanho *</label><select id="saleSize"><option value="">Selecione o tamanho</option></select>
+<div class="grid2"><div><label>Quantidade *</label><input id="saleQty" type="number" min="1" value="1"></div><div><label>Valor unitário vendido (R$)</label><input id="salePrice" type="number" min="0" step=".01"></div></div>
+<label>Desconto total na venda (R$)</label><input id="saleDiscount" type="number" min="0" step=".01" value="0">
+<label>Cliente / observação</label><input id="saleNote" placeholder="Nome do cliente ou pedido">
+<button class="btn green" style="width:100%;margin-top:15px" onclick="registerSale()">Confirmar venda e baixar estoque</button>
+<div class="note">O lucro estimado considera o preço efetivamente vendido, desconto e custo cadastrado do produto.</div></div></section>
+<section id="purchase" class="section"><h2>Compra / reposição</h2><div class="panel">
+<label>Modelo *</label><select id="buyProduct"><option value="">Selecione uma camisa cadastrada</option></select>
+<label>Tamanho *</label><select id="buySize"><option value="">Selecione o tamanho</option></select>
+<div class="grid2"><div><label>Quantidade recebida *</label><input id="buyQty" type="number" min="1" value="1"></div><div><label>Custo unitário pago (R$)</label><input id="buyCost" type="number" min="0" step=".01"></div></div>
+<label>Fornecedor</label><input id="supplier" placeholder="Nome do fornecedor">
+<label>Referência / observação</label><input id="buyNote" placeholder="Ex.: pedido, nota ou lote">
+<button class="btn green" style="width:100%;margin-top:15px" onclick="registerPurchase()">Registrar entrada no estoque</button>
+<div class="note">A entrada soma as unidades ao tamanho escolhido e atualiza o custo unitário cadastrado com o custo informado nesta compra.</div></div></section>
+
+<section id="orders" class="section"><h2>Encomendas personalizadas</h2>
+<div class="panel">
+ <p class="muted">Registre pedidos sob encomenda, inclusive camisas personalizadas com nome e número escolhidos pelo cliente. Encomendas ficam separadas do estoque à pronta entrega.</p>
+ <input type="hidden" id="orderEditId">
+ <label>Nome do cliente *</label><input id="orderCustomer" placeholder="Nome do cliente">
+ <div class="grid2"><div><label>Contato (opcional)</label><input id="orderContact" placeholder="WhatsApp / telefone"></div><div><label>Modelo / time</label><input id="orderModel" placeholder="Ex.: camisa Brasil 2026"></div></div>
+ <div class="grid2"><div><label>Tamanho *</label><select id="orderSize"><option value="">Selecione</option><opt
