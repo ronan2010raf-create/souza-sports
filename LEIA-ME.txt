@@ -1,0 +1,23 @@
+SOUZA SPORTS — PUBLICAÇÃO PWA
+
+O repositório contém o aplicativo e os arquivos para instalação como PWA.
+
+PUBLICAÇÃO
+1. Abra Settings > Pages.
+2. Em Build and deployment, escolha Deploy from a branch.
+3. Selecione branch main e pasta /(root), depois clique em Save.
+4. Aguarde o GitHub Pages publicar e informe o endereço HTTPS gerado.
+5. No Android, abra o endereço no Chrome > menu ⋮ > Instalar app / Adicionar à tela inicial.
+
+DADOS E BACKUP
+Esta versão armazena os dados localmente no navegador do aparelho. A hospedagem
+publica os arquivos, mas não sincroniza o estoque entre aparelhos.
+Exporte o backup JSON regularmente e guarde cópias em locais seguros.
+Limpar os dados do navegador ou trocar de aparelho pode apagar os dados locais.
+Ainda não há login, banco remoto, criptografia própria ou backup automático.
+Não compartilhe senhas, tokens ou chaves secretas.
+
+ARQUIVOS
+O conteúdo do aplicativo está dividido em app-part-1.txt até app-part-7.txt
+e é carregado pelo index.html. O service worker mantém esses arquivos em cache
+para permitir abertura offline após a primeira instalação/carregamento.
