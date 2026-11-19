@@ -26,6 +26,7 @@
 .sync-row{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
 #syncStatus{font-size:11px;color:#c6d4e4}
 .sync-btn{border:1px solid #63809d;background:#1c3855;color:white;border-radius:7px;font-size:11px;padding:5px 8px}
+body.role-collaborator #stock .actions button:first-child,body.role-collaborator #stock .actions button:last-child{display:none!important}
 .logout-btn{border:0;background:transparent;color:#d8e3ef;text-decoration:underline;font-size:11px;padding:5px}
 @media(max-width:390px){.sync-row{gap:5px}.sync-btn,.logout-btn{font-size:10px;padding:4px 6px}}
 
@@ -42,6 +43,14 @@
   <button class="btn green" id="authSubmit" onclick="submitAuth()">Entrar</button>
   <button class="btn link" id="authToggle" onclick="toggleAuthMode()">Primeiro acesso? Criar conta</button>
   <button class="btn secondary" id="localModeBtn" onclick="setLocalMode()">Continuar somente neste aparelho</button>
+  <div id="workspaceSetup" class="hidden" style="border-top:1px solid var(--line);margin-top:16px;padding-top:12px">
+   <h3 style="margin:0 0 6px">Vincular ao estoque compartilhado</h3>
+   <p>Administrador: crie o espaço e migre os dados atuais. Colaborador: entre usando o código de convite recebido.</p>
+   <button class="btn green" style="width:100%" onclick="createWorkspaceFromLegacy()">Criar estoque compartilhado com meus dados atuais</button>
+   <label for="joinInviteCode">Código de convite</label>
+   <input id="joinInviteCode" autocomplete="off" placeholder="Cole o código de convite aqui">
+   <button class="btn" style="width:100%;margin-top:10px" onclick="joinWorkspaceFromInvite()">Entrar no estoque compartilhado</button>
+  </div>
   <div id="authMessage" aria-live="polite"></div>
  </div>
 </div>
@@ -55,7 +64,7 @@
  <div class="stat"><small>Valor em estoque (custo)</small><strong id="stockValue">R$ 0,00</strong></div>
 </div>
 <nav class="tabs">
-<button class="tab active" data-tab="stock">Estoque</button><button class="tab" data-tab="add">Cadastrar</button><button class="tab" data-tab="sale">Vender</button><button class="tab" data-tab="purchase">Compras / entrada</button><button class="tab" data-tab="orders">Encomendas</button><button class="tab" data-tab="reports">Relatórios</button><button class="tab" data-tab="history">Histórico</button><button class="tab" data-tab="backup">Backup</button>
+<button class="tab active" data-tab="stock">Estoque</button><button class="tab" data-tab="add">Cadastrar</button><button class="tab" data-tab="sale">Vender</button><button class="tab" data-tab="purchase">Compras / entrada</button><button class="tab" data-tab="orders">Encomendas</button><button class="tab" data-tab="reports">Relatórios</button><button class="tab" data-tab="history">Histórico</button><button class="tab" data-tab="backup">Backup</button><button class="tab" data-tab="access">Acessos</button>
 <section id="stock" class="section active">
  <div class="row"><h2>Meu estoque</h2><button class="btn" onclick="showTab('add')">＋ Nova camisa</button></div>
  <input class="search" id="search" placeholder="Buscar modelo, time ou coleção..." oninput="renderProducts()">
@@ -137,6 +146,17 @@
 <label>Restaurar backup (arquivo JSON)</label><input type="file" id="restoreFile" accept=".json,application/json">
 <button class="btn secondary" style="width:100%;margin-top:10px" onclick="importBackup()">Restaurar dados</button>
 <div class="note">Atenção: limpar os dados do navegador ou trocar de aparelho pode apagar o estoque. Guarde o backup em local seguro. Para usar em mais de um aparelho, será necessária uma versão com banco de dados e sincronização online.</div></div></section>
+<section id="access" class="section"><h2>Usuários e acessos</h2><div class="panel">
+ <p>Convide outra pessoa para usar o mesmo estoque SOUZA SPORTS. Cada pessoa terá seu próprio e-mail e senha. O convite é de uso único e expira em 7 dias.</p>
+ <div class="note">O administrador pode gerenciar produtos, preços, encomendas e acessos. Colaboradores podem consultar o estoque, registrar vendas e entradas, sem editar o cadastro dos produtos ou encomendas.</div>
+ <button class="btn green" style="width:100%;margin-top:14px" onclick="generateWorkspaceInvite()">＋ Gerar convite para colaborador</button>
+ <div id="inviteOutput" class="hidden" style="margin-top:14px">
+  <label for="inviteCodeOutput">Código de convite (compartilhe com o usuário)</label>
+  <input id="inviteCodeOutput" readonly>
+  <button class="btn secondary" style="width:100%;margin-top:8px" onclick="copyWorkspaceInvite()">Copiar código</button>
+ </div>
+ <div id="accessMessage" class="muted" style="margin-top:12px"></div>
+</div></section>
 <div class="footer">SOUZA SPORTS • Controle local no seu aparelho</div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -147,7 +167,7 @@ const SUPABASE_URL='https://atmkhujxejimbolckvrk.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_LZPa_mej5wdBxjkd8cbJnA_L1f-KvFo';
 const SIZES=['P','M','G','GG','XG','2XL','3XL','4XL'],KEY='meuEstoqueCamisas_v2';
 let db=load(),pendingPhoto=null; db.orders=db.orders||[];
-let cloudClient=null,cloudUser=null,cloudReady=false,cloudVersion=null,cloudSaveTimer=null,cloudSaveRunning=false,cloudDirty=false,cloudConflict=false,localOnly=false,connectPromise=null,authMode='login';
+let cloudClient=null,cloudUser=null,cloudReady=false,cloudVersion=null,workspaceId=null,workspaceRole=null,cloudSaveTimer=null,cloudSaveRunning=false,cloudDirty=false,cloudConflict=false,localOnly=false,connectPromise=null,authMode='login';
 function load(){try{return JSON.parse(localStorage.getItem(KEY))||{products:[],moves:[],orders:[]}}catch(e){return {products:[],moves:[],orders:[]}}}
 function normalizeData(value){return {products:Array.isArray(value?.products)?value.products:[],moves:Array.isArray(value?.moves)?value.moves:[],orders:Array.isArray(value?.orders)?value.orders:[]}}
 function hasLocalRecords(value){const d=normalizeData(value);return d.products.length>0||d.moves.length>0||d.orders.length>0}
