@@ -244,12 +244,12 @@ on public.souza_sports_workspace_data
 for select to authenticated
 using (public.souza_is_workspace_member(workspace_id));
 
-revoke all on function public.souza_is_workspace_member(uuid) from public, anon;
-revoke all on function public.get_souza_workspace_id() from public, anon;
-revoke all on function public.get_souza_user_role() from public, anon;
-revoke all on function public.ensure_souza_workspace() from public, anon;
-revoke all on function public.create_souza_invite() from public, anon;
-revoke all on function public.join_souza_workspace(text) from public, anon;
+revoke all on function public.souza_is_workspace_member(uuid) from PUBLIC, anon;
+revoke all on function public.get_souza_workspace_id() from PUBLIC, anon;
+revoke all on function public.get_souza_user_role() from PUBLIC, anon;
+revoke all on function public.ensure_souza_workspace() from PUBLIC, anon;
+revoke all on function public.create_souza_invite() from PUBLIC, anon;
+revoke all on function public.join_souza_workspace(text) from PUBLIC, anon;
 
 grant execute on function public.souza_is_workspace_member(uuid) to authenticated;
 grant execute on function public.get_souza_workspace_id() to authenticated;
@@ -425,7 +425,7 @@ begin
 end;
 $savefn$;
 
-revoke all on function public.save_souza_workspace_data(jsonb,timestamptz) from public, anon;
+revoke all on function public.save_souza_workspace_data(jsonb,timestamptz) from PUBLIC, anon;
 grant execute on function public.save_souza_workspace_data(jsonb,timestamptz) to authenticated;
 
 commit;
