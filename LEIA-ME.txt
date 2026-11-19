@@ -46,3 +46,11 @@ Na aba Acessos, gere o convite de sócio. O sócio cria conta própria e aceita
 o código de uso único. Somente o administrador principal pode gerar convites;
 o sócio tem os acessos operacionais completos (produtos, preços, compras,
 vendas, encomendas e relatórios).
+
+
+GRADES DE TAMANHOS
+No cadastro de produtos, os tipos FEMINA usam P, M, G, GG, XG, 2XL, 3XL e 4XL.
+Os produtos do tipo INFANTIL usam 16, 18, 20, 22, 24, 26 e 28.
+Vendas, compras, entradas, estoque e encomendas aceitam as duas grades.
+Para ativar o acesso de sócio e a validação dos tamanhos infantis no banco,
+execute a versão atual de supabase-partner-role.sql no Supabase SQL Editor.
