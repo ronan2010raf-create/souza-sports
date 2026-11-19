@@ -1,34 +1,171 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#14263d">
 <meta name="description" content="SOUZA SPORTS — controle de estoque, vendas e encomendas de camisas.">
 <link rel="manifest" href="./manifest.webmanifest">
-<link rel="apple-touch-icon" href="./icons/icon-192.png">
-<title>SOUZA SPORTS</title>
+<link rel="apple-touch-icon" href="./icons/icon-192.png"><title>SOUZA SPORTS</title>
 <style>
-body{margin:0;padding:24px;font:16px system-ui,sans-serif;background:#f3f5f8;color:#14263d}
-#boot{max-width:420px;margin:15vh auto;text-align:center}
-</style>
-</head>
+:root{--navy:#14263d;--blue:#24496e;--bg:#f3f5f8;--card:#fff;--text:#172333;--muted:#6c7887;--line:#e3e8ef;--green:#16845b;--red:#c43d48;--gold:#a66b13}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}header{background:var(--navy);color:white;padding:18px 16px;position:sticky;top:0;z-index:5}header .sub{color:#c6d4e4;font-size:11px;letter-spacing:.08em}h1{font-size:21px;margin:4px 0 0}h2{font-size:19px;margin:8px 0 14px}.wrap{max-width:820px;margin:auto;padding:13px 13px 90px}.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin:3px 0 14px}.stat,.panel,.product{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px}.stat small{color:var(--muted);display:block}.stat strong{font-size:22px;display:block;margin-top:3px}.stat:nth-child(1) strong{color:var(--blue)}.stat:nth-child(2) strong{color:var(--green)}.tabs{display:flex;gap:7px;overflow:auto;margin:0 0 13px;padding-bottom:3px}.tab{border:1px solid var(--line);background:white;color:var(--muted);padding:10px 12px;border-radius:10px;white-space:nowrap;font-weight:650}.tab.active{background:var(--navy);color:white;border-color:var(--navy)}.section{display:none}.section.active{display:block}.row{display:flex;align-items:center;justify-content:space-between;gap:9px}.muted{color:var(--muted);font-size:12px}.btn{border:0;border-radius:10px;padding:11px 13px;background:var(--navy);color:white;font-weight:650;cursor:pointer}.btn.secondary{background:#eaf0f6;color:var(--navy)}.btn.danger{background:#fff0f0;color:var(--red)}.btn.green{background:var(--green);color:white}input,select,textarea{width:100%;padding:11px;border:1px solid #d5dde7;border-radius:10px;background:white;color:var(--text);font:inherit;min-width:0}label{font-size:13px;font-weight:650;display:block;margin:11px 0 5px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}.sizes{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.sizebox{background:#f7f9fb;border:1px solid var(--line);border-radius:10px;padding:7px}.sizebox label{margin:0 0 4px}.sizebox input{padding:8px;text-align:center}.product{margin-top:9px}.product h3{margin:0;font-size:15px}.pill{font-size:11px;padding:4px 8px;border-radius:20px;background:#eaf5ef;color:var(--green);font-weight:700}.pill.low{background:#fff5df;color:var(--gold)}.inventory{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:9px}.inventory span{background:#f5f7fa;border-radius:8px;padding:6px 3px;text-align:center;font-size:11px}.inventory b{display:block;font-size:14px}.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.actions button{padding:8px 9px;font-size:11px}.empty{text-align:center;padding:25px 10px;color:var(--muted)}.note{background:#eef5fb;border-radius:10px;padding:10px;color:#38536e;font-size:12px;margin-top:10px}.form-actions{display:flex;gap:8px;margin-top:14px}.form-actions>*{flex:1}.movement{border-bottom:1px solid var(--line);padding:10px 0}.movement:last-child{border:0}.positive{color:var(--green);font-weight:700}.negative{color:var(--red);font-weight:700}.photo{width:68px;height:68px;object-fit:cover;border-radius:10px;background:#edf1f5}.photoBig{width:100%;max-height:210px;object-fit:contain;border-radius:10px;background:#f3f5f8;margin-top:8px}.search{margin-bottom:9px}.footer{color:var(--muted);font-size:11px;text-align:center;padding:18px 0}.kpi{font-size:19px;font-weight:750}.tag{font-size:11px;background:#edf1f5;border-radius:6px;padding:3px 6px}.hidden{display:none!important}@media(min-width:600px){.stats{grid-template-columns:repeat(4,1fr)}.sizes{grid-template-columns:repeat(8,1fr)}}
+</style></head>
 <body>
-<div id="boot">Carregando o SOUZA SPORTS…</div>
+<header><div class="sub">CONTROLE DE VENDAS • PRONTA ENTREGA</div><h1>👕 SOUZA SPORTS</h1></header>
+<main class="wrap">
+<div class="stats">
+ <div class="stat"><small>Peças disponíveis</small><strong id="totalPieces">0</strong></div>
+ <div class="stat"><small>Modelos cadastrados</small><strong id="totalModels">0</strong></div>
+ <div class="stat"><small>Unidades vendidas</small><strong id="totalSold">0</strong></div>
+ <div class="stat"><small>Valor em estoque (custo)</small><strong id="stockValue">R$ 0,00</strong></div>
+</div>
+<nav class="tabs">
+<button class="tab active" data-tab="stock">Estoque</button><button class="tab" data-tab="add">Cadastrar</button><button class="tab" data-tab="sale">Vender</button><button class="tab" data-tab="purchase">Compras / entrada</button><button class="tab" data-tab="orders">Encomendas</button><button class="tab" data-tab="reports">Relatórios</button><button class="tab" data-tab="history">Histórico</button><button class="tab" data-tab="backup">Backup</button>
+<section id="stock" class="section active">
+ <div class="row"><h2>Meu estoque</h2><button class="btn" onclick="showTab('add')">＋ Nova camisa</button></div>
+ <input class="search" id="search" placeholder="Buscar modelo, time ou coleção..." oninput="renderProducts()">
+ <div class="grid2"><select id="filterTeam" onchange="renderProducts()"><option value="">Todos os times / coleções</option></select><select id="filterKind" onchange="renderProducts()"><option value="">Todos os tipos</option><option>Torcedor</option><option>Jogador</option><option>Retrô</option><option>Basquete</option><option>Outro</option></select></div>
+ <div id="products"></div>
+</section>
+<section id="add" class="section"><h2 id="formTitle">Cadastrar camisa</h2><div class="panel">
+<input type="hidden" id="editId">
+<label>Nome / identificação do modelo *</label><input id="name" placeholder="Ex.: Real Madrid titular 2026">
+<div class="grid2"><div><label>Time / coleção</label><input id="team" placeholder="Ex.: Real Madrid"></div><div><label>Tipo</label><select id="kind"><option>Torcedor</option><option>Jogador</option><option>Retrô</option><option>Basquete</option><option>Outro</option></select></div></div>
+<label>Foto da camisa</label><input type="file" id="photo" accept="image/*"><div id="photoPreview"></div><div class="muted">A foto é reduzida para ocupar menos espaço no aparelho.</div>
+<div class="grid2"><div><label>Preço de custo unitário (R$)</label><input id="cost" type="number" min="0" step=".01" placeholder="0,00"></div><div><label>Preço de venda (R$)</label><input id="price" type="number" min="0" step=".01" placeholder="0,00"></div></div>
+<label>Quantidade inicial por tamanho</label><div class="sizes" id="sizeInputs"></div>
+<div class="note">Tamanhos controlados individualmente: P, M, G, GG, XG, 2XL, 3XL e 4XL. Em edição, alterar quantidades gera movimentação de ajuste.</div>
+<div class="form-actions"><button class="btn secondary" onclick="resetForm()">Limpar</button><button class="btn green" onclick="saveProduct()">Salvar modelo</button></div></div></section>
+<section id="sale" class="section"><h2>Registrar venda</h2><div class="panel">
+<label>Modelo *</label><select id="saleProduct" onchange="updateSaleSizes()"><option value="">Selecione uma camisa</option></select>
+<label>Tamanho *</label><select id="saleSize"><option value="">Selecione o tamanho</option></select>
+<div class="grid2"><div><label>Quantidade *</label><input id="saleQty" type="number" min="1" value="1"></div><div><label>Valor unitário vendido (R$)</label><input id="salePrice" type="number" min="0" step=".01"></div></div>
+<label>Desconto total na venda (R$)</label><input id="saleDiscount" type="number" min="0" step=".01" value="0">
+<label>Cliente / observação</label><input id="saleNote" placeholder="Nome do cliente ou pedido">
+<button class="btn green" style="width:100%;margin-top:15px" onclick="registerSale()">Confirmar venda e baixar estoque</button>
+<div class="note">O lucro estimado considera o preço efetivamente vendido, desconto e custo cadastrado do produto.</div></div></section>
+<section id="purchase" class="section"><h2>Compra / reposição</h2><div class="panel">
+<label>Modelo *</label><select id="buyProduct"><option value="">Selecione uma camisa cadastrada</option></select>
+<label>Tamanho *</label><select id="buySize"><option value="">Selecione o tamanho</option></select>
+<div class="grid2"><div><label>Quantidade recebida *</label><input id="buyQty" type="number" min="1" value="1"></div><div><label>Custo unitário pago (R$)</label><input id="buyCost" type="number" min="0" step=".01"></div></div>
+<label>Fornecedor</label><input id="supplier" placeholder="Nome do fornecedor">
+<label>Referência / observação</label><input id="buyNote" placeholder="Ex.: pedido, nota ou lote">
+<button class="btn green" style="width:100%;margin-top:15px" onclick="registerPurchase()">Registrar entrada no estoque</button>
+<div class="note">A entrada soma as unidades ao tamanho escolhido e atualiza o custo unitário cadastrado com o custo informado nesta compra.</div></div></section>
+
+<section id="orders" class="section"><h2>Encomendas personalizadas</h2>
+<div class="panel">
+ <p class="muted">Registre pedidos sob encomenda, inclusive camisas personalizadas com nome e número escolhidos pelo cliente. Encomendas ficam separadas do estoque à pronta entrega.</p>
+ <input type="hidden" id="orderEditId">
+ <label>Nome do cliente *</label><input id="orderCustomer" placeholder="Nome do cliente">
+ <div class="grid2"><div><label>Contato (opcional)</label><input id="orderContact" placeholder="WhatsApp / telefone"></div><div><label>Modelo / time</label><input id="orderModel" placeholder="Ex.: camisa Brasil 2026"></div></div>
+ <div class="grid2"><div><label>Tamanho *</label><select id="orderSize"><option value="">Selecione</option><option>P</option><option>M</option><option>G</option><option>GG</option><option>XG</option><option>2XL</option><option>3XL</option><option>4XL</option></select></div><div><label>Quantidade *</label><input id="orderQty" type="number" min="1" value="1"></div></div>
+ <label>Personalização da camisa</label>
+ <div class="grid2"><div><label>Nome nas costas</label><input id="orderPrintName" placeholder="Ex.: RONAN"></div><div><label>Número</label><input id="orderNumber" placeholder="Ex.: 10" maxlength="3"></div></div>
+ <div class="panel" style="margin-top:12px;background:#f7f9fc">
+  <div class="row"><b>Prévia da personalização</b><span class="tag">Visualização ilustrativa</span></div>
+  <div style="max-width:310px;margin:10px auto 0">
+   <svg viewBox="0 0 320 340" role="img" aria-label="Prévia ilustrativa de camisa com nome e número personalizados" style="width:100%;height:auto;display:block">
+    <defs><linearGradient id="shirtShade" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#263f5d"/><stop offset=".5" stop-color="#14263d"/><stop offset="1" stop-color="#0c1929"/></linearGradient></defs>
+    <path d="M105 28 L137 14 Q160 31 183 14 L215 28 L292 76 L263 139 L231 122 L231 319 L89 319 L89 122 L57 139 L28 76 Z" fill="url(#shirtShade)" stroke="#0a1726" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M137 14 Q160 54 183 14" fill="none" stroke="#d8e0e9" stroke-width="7"/>
+    <path d="M89 122 L57 139 M231 122 L263 139" stroke="#d8e0e9" stroke-width="4" opacity=".7"/>
+    <path d="M98 124 L98 311 M222 124 L222 311" stroke="#ffffff" stroke-width="1.5" opacity=".12"/>
+    <text x="160" y="163" text-anchor="middle" fill="#fff" font-size="17" font-weight="800" letter-spacing="1.4" id="previewName">SEU NOME</text>
+    <text x="160" y="267" text-anchor="middle" fill="#fff" font-size="104" font-weight="900" stroke="#101b2b" stroke-width="2" paint-order="stroke" id="previewNumber">10</text>
+   </svg>
+  </div>
+  <div class="muted" style="text-align:center">A prévia demonstra a posição do nome e número. Cores, fonte e detalhes finais dependem do fornecedor.</div>
+ </div>
+
+ <div class="grid2"><div><label>Valor total do pedido (R$) *</label><input id="orderTotal" type="number" min="0" step=".01" placeholder="0,00"></div><div><label>Valor já recebido / sinal (R$)</label><input id="orderPaid" type="number" min="0" step=".01" value="0"></div></div>
+ <div class="grid2"><div><label>Previsão de entrega</label><input id="orderDue" type="date"></div><div><label>Status do pedido</label><select id="orderStatus"><option>Pedido recebido</option><option>Em produção</option><option>Pronto para retirada</option><option>Entregue</option><option>Cancelado</option></select></div></div>
+ <label>Observações</label><input id="orderNote" placeholder="Detalhes de cor, patch, manga, fornecedor etc.">
+ <div class="form-actions"><button class="btn secondary" onclick="clearOrderForm()">Limpar</button><button class="btn green" onclick="saveOrder()">Salvar encomenda</button></div>
+</div>
+<h3>Pedidos cadastrados</h3>
+<div class="grid2"><select id="orderFilter" onchange="renderOrders()"><option value="">Todos os status</option><option>Pedido recebido</option><option>Em produção</option><option>Pronto para retirada</option><option>Entregue</option><option>Cancelado</option></select><input id="orderSearch" placeholder="Buscar cliente ou modelo..." oninput="renderOrders()"></div>
+<div id="ordersList"></div>
+<div class="note">O sinal recebido é registrado como pagamento inicial. O saldo é calculado automaticamente. Encomendas não reduzem o estoque de pronta entrega.</div>
+</section>
+
+<section id="reports" class="section"><h2>Relatórios de vendas</h2><div class="panel">
+<div class="grid2"><div><label>De</label><input type="date" id="dateFrom"></div><div><label>Até</label><input type="date" id="dateTo"></div></div>
+<button class="btn" style="width:100%;margin-top:12px" onclick="renderReports()">Atualizar relatório</button>
+<div class="grid2" style="margin-top:14px"><div class="stat"><small>Faturamento</small><div class="kpi" id="repRevenue">R$ 0,00</div></div><div class="stat"><small>Lucro estimado</small><div class="kpi" id="repProfit">R$ 0,00</div></div><div class="stat"><small>Peças vendidas</small><div class="kpi" id="repUnits">0</div></div><div class="stat"><small>Vendas registradas</small><div class="kpi" id="repOrders">0</div></div></div>
+<h3>Vendas por modelo</h3><div id="repProducts" class="muted">Selecione o período e atualize.</div>
+</div></section>
+<section id="history" class="section"><div class="row"><h2>Movimentações</h2><select id="historyFilter" style="max-width:145px" onchange="renderHistory()"><option value="all">Todas</option><option value="sale">Vendas</option><option value="entry">Entradas</option><option value="adjust">Ajustes</option></select></div><div class="panel" id="historyList"></div></section>
+<section id="backup" class="section"><h2>Backup dos dados</h2><div class="panel">
+<p>Os cadastros, fotos e movimentações ficam salvos neste navegador e aparelho. Exporte um backup regularmente.</p>
+<button class="btn" style="width:100%;margin:6px 0" onclick="exportBackup()">⬇ Exportar backup completo</button>
+<label>Restaurar backup (arquivo JSON)</label><input type="file" id="restoreFile" accept=".json,application/json">
+<button class="btn secondary" style="width:100%;margin-top:10px" onclick="importBackup()">Restaurar dados</button>
+<div class="note">Atenção: limpar os dados do navegador ou trocar de aparelho pode apagar o estoque. Guarde o backup em local seguro. Para usar em mais de um aparelho, será necessária uma versão com banco de dados e sincronização online.</div></div></section>
+<div class="footer">SOUZA SPORTS • Controle local no seu aparelho</div>
+</main>
 <script>
-(async()=>{
-  const files=["./app-part-1.txt","./app-part-2.txt","./app-part-3.txt","./app-part-4.txt","./app-part-5.txt","./app-part-6.txt","./app-part-7.txt"];
-  const parts=await Promise.all(files.map(async file=>{
-    const response=await fetch(file);
-    if(!response.ok) throw new Error("Não foi possível carregar "+file);
-    return response.text();
-  }));
-  document.open();
-  document.write(parts.join(""));
-  document.close();
-})().catch(error=>{
-  document.getElementById("boot").textContent="Erro ao carregar o aplicativo. Verifique sua conexão e atualize a página. "+error.message;
-});
+const SIZES=['P','M','G','GG','XG','2XL','3XL','4XL'],KEY='meuEstoqueCamisas_v2';
+let db=load(),pendingPhoto=null; db.orders=db.orders||[];
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||{products:[],moves:[]}}catch(e){return {products:[],moves:[]}}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(db));renderAll()}catch(e){alert('O armazenamento do navegador ficou cheio. Exporte um backup e tente cadastrar uma foto menor.');}}
+function money(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function total(p){return SIZES.reduce((a,s)=>a+(Number(p.qty[s])||0),0)}
+function showTab(id){document.querySelectorAll('.section').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===id));if(id==='sale'){fillProductSelect('saleProduct');updateSaleSizes()}if(id==='purchase'){fillProductSelect('buyProduct');updateBuySizes()}if(id==='history')renderHistory();if(id==='orders')renderOrders();if(id==='reports')renderReports();window.scrollTo(0,0)}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+function makeSizeInputs(vals={}){document.getElementById('sizeInputs').innerHTML=SIZES.map(s=>`<div class="sizebox"><label>${s}</label><input type="number" min="0" step="1" id="q_${s}" value="${vals[s]??0}"></div>`).join('')}
+makeSizeInputs();
+document.getElementById('photo').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const reader=new FileReader();reader.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas'),max=650,scale=Math.min(1,max/Math.max(im.width,im.height));c.width=Math.round(im.width*scale);c.height=Math.round(im.height*scale);c.getContext('2d').drawImage(im,0,0,c.width,c.height);pendingPhoto=c.toDataURL('image/jpeg',.72);document.getElementById('photoPreview').innerHTML=`<img class="photoBig" src="${pendingPhoto}">`};im.src=reader.result};reader.readAsDataURL(f)});
+function resetForm(){['editId','name','team','cost','price'].forEach(id=>document.getElementById(id).value='');document.getElementById('kind').value='Torcedor';document.getElementById('photo').value='';document.getElementById('photoPreview').innerHTML='';pendingPhoto=null;makeSizeInputs();document.getElementById('formTitle').textContent='Cadastrar camisa'}
+function saveProduct(){const id=document.getElementById('editId').value,name=document.getElementById('name').value.trim();if(!name){alert('Informe o nome do modelo.');return}const qty={};SIZES.forEach(s=>qty[s]=Math.max(0,parseInt(document.getElementById('q_'+s).value)||0));
+if(id){const p=db.products.find(x=>x.id===id);if(!p)return;const old={...p.qty};Object.assign(p,{name,team:document.getElementById('team').value.trim(),kind:document.getElementById('kind').value,cost:Number(document.getElementById('cost').value)||0,price:Number(document.getElementById('price').value)||0});if(pendingPhoto)p.photo=pendingPhoto;SIZES.forEach(s=>{let delta=qty[s]-(old[s]||0);if(delta)db.moves.unshift({id:crypto.randomUUID(),type:'adjust',productId:p.id,productName:p.name,size:s,qty:Math.abs(delta),delta,detail:'Ajuste de cadastro',date:new Date().toISOString()})});p.qty=qty;
+}else{const p={id:crypto.randomUUID(),name,team:document.getElementById('team').value.trim(),kind:document.getElementById('kind').value,cost:Number(document.getElementById('cost').value)||0,price:Number(document.getElementById('price').value)||0,qty,photo:pendingPhoto||'',created:new Date().toISOString()};db.products.unshift(p);SIZES.forEach(s=>{if(qty[s])db.moves.unshift({id:crypto.randomUUID(),type:'entry',productId:p.id,productName:p.name,size:s,qty:qty[s],delta:qty[s],detail:'Estoque inicial',date:new Date().toISOString()})})}
+persist();resetForm();showTab('stock');alert('Modelo salvo!')}
+function editProduct(id){const p=db.products.find(x=>x.id===id);if(!p)return;showTab('add');document.getElementById('formTitle').textContent='Editar camisa';document.getElementById('editId').value=p.id;document.getElementById('name').value=p.name;document.getElementById('team').value=p.team||'';document.getElementById('kind').value=p.kind||'Torcedor';document.getElementById('cost').value=p.cost||'';document.getElementById('price').value=p.price||'';pendingPhoto=null;document.getElementById('photoPreview').innerHTML=p.photo?`<img class="photoBig" src="${p.photo}">`:'';makeSizeInputs(p.qty)}
+function deleteProduct(id){const p=db.products.find(x=>x.id===id);if(p&&confirm(`Excluir "${p.name}"? O histórico será mantido.`)){db.products=db.products.filter(x=>x.id!==id);persist()}}
+function renderProducts(){const q=(document.getElementById('search').value||'').toLowerCase(),team=document.getElementById('filterTeam').value,kind=document.getElementById('filterKind').value;const teams=[...new Set(db.products.map(p=>p.team).filter(Boolean))].sort();const ft=document.getElementById('filterTeam');const prev=ft.value;ft.innerHTML='<option value="">Todos os times / coleções</option>'+teams.map(t=>`<option>${esc(t)}</option>`).join('');ft.value=teams.includes(prev)?prev:'';const list=db.products.filter(p=>(p.name+' '+p.team+' '+p.kind).toLowerCase().includes(q)&&(!team||p.team===team)&&(!kind||p.kind===kind));const el=document.getElementById('products');if(!list.length){el.innerHTML='<div class="panel empty">Nenhuma camisa encontrada. Cadastre seu primeiro modelo.</div>';return}el.innerHTML=list.map(p=>{let n=total(p);return `<article class="product"><div class="row" style="align-items:flex-start"><div class="row" style="justify-content:flex-start;min-width:0">${p.photo?`<img class="photo" src="${p.photo}">`:`<div class="photo" style="display:grid;place-items:center;font-size:25px">👕</div>`}<div><h3>${esc(p.name)}</h3><div class="muted">${esc(p.team||'Sem time/coleção')} • ${esc(p.kind||'')}</div><div class="muted">Venda ${money(p.price)} • Custo ${money(p.cost)}</div></div></div><span class="pill ${n<=2?'low':''}">${n} un.</span></div><div class="inventory">${SIZES.map(s=>`<span>${s}<b>${p.qty[s]||0}</b></span>`).join('')}</div><div class="actions"><button class="btn secondary" onclick="editProduct('${p.id}')">Editar</button><button class="btn secondary" onclick="quickEntry('${p.id}')">＋ Entrada</button><button class="btn danger" onclick="deleteProduct('${p.id}')">Excluir</button></div></article>`}).join('')}
+function quickEntry(id){fillProductSelect('buyProduct');document.getElementById('buyProduct').value=id;updateBuySizes();showTab('purchase')}
+function fillProductSelect(id){const el=document.getElementById(id);el.innerHTML='<option value="">Selecione um modelo</option>'+db.products.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}
+function updateSaleSizes(){const p=db.products.find(x=>x.id===document.getElementById('saleProduct').value),sel=document.getElementById('saleSize');sel.innerHTML='<option value="">Selecione tamanho</option>';if(p)SIZES.filter(s=>(p.qty[s]||0)>0).forEach(s=>sel.innerHTML+=`<option value="${s}">${s} — ${p.qty[s]} disponível(is)</option>`);document.getElementById('salePrice').value=p?.price||''}
+document.getElementById('saleProduct').addEventListener('change',updateSaleSizes);
+function registerSale(){const p=db.products.find(x=>x.id===document.getElementById('saleProduct').value),s=document.getElementById('saleSize').value,q=Number(document.getElementById('saleQty').value),price=Number(document.getElementById('salePrice').value)||0,discount=Number(document.getElementById('saleDiscount').value)||0;if(!p||!s||!Number.isInteger(q)||q<1||discount<0||discount>price*q){alert('Confira modelo, tamanho, quantidade e desconto.');return}if((p.qty[s]||0)<q){alert('Estoque insuficiente. Disponível: '+(p.qty[s]||0));return}p.qty[s]-=q;db.moves.unshift({id:crypto.randomUUID(),type:'sale',productId:p.id,productName:p.name,size:s,qty:q,delta:-q,price,discount,cost:p.cost||0,note:document.getElementById('saleNote').value.trim(),date:new Date().toISOString()});persist();document.getElementById('saleQty').value=1;document.getElementById('saleDiscount').value=0;document.getElementById('saleNote').value='';fillProductSelect('saleProduct');document.getElementById('saleProduct').value=p.id;updateSaleSizes();alert('Venda registrada e estoque atualizado!')}
+function updateBuySizes(){const p=db.products.find(x=>x.id===document.getElementById('buyProduct').value),sel=document.getElementById('buySize');sel.innerHTML='<option value="">Selecione tamanho</option>';if(p)SIZES.forEach(s=>sel.innerHTML+=`<option value="${s}">${s} — atual: ${p.qty[s]||0}</option>`);document.getElementById('buyCost').value=p?.cost||''}
+document.getElementById('buyProduct').addEventListener('change',updateBuySizes);
+function registerPurchase(){const p=db.products.find(x=>x.id===document.getElementById('buyProduct').value),s=document.getElementById('buySize').value,q=Number(document.getElementById('buyQty').value),cost=Number(document.getElementById('buyCost').value)||0,supplier=document.getElementById('supplier').value.trim(),note=document.getElementById('buyNote').value.trim();if(!p||!s||!Number.isInteger(q)||q<1){alert('Selecione modelo, tamanho e quantidade válida.');return}p.qty[s]=(p.qty[s]||0)+q;if(cost>0)p.cost=cost;db.moves.unshift({id:crypto.randomUUID(),type:'entry',productId:p.id,productName:p.name,size:s,qty:q,delta:q,cost,supplier,note,detail:`Compra de ${q} unidade(s)${supplier?' • '+supplier:''}`,date:new Date().toISOString()});persist();document.getElementById('buyQty').value=1;document.getElementById('supplier').value='';document.getElementById('buyNote').value='';fillProductSelect('buyProduct');document.getElementById('buyProduct').value=p.id;updateBuySizes();alert('Entrada registrada!')}
+function renderHistory(){const f=document.getElementById('historyFilter').value,arr=db.moves.filter(m=>f==='all'||m.type===f);document.getElementById('historyList').innerHTML=arr.length?arr.map(m=>`<div class="movement"><div class="row"><b>${esc(m.productName)}</b><span class="${m.delta>0?'positive':'negative'}">${m.delta>0?'+':'−'}${m.qty} un.</span></div><div class="muted">${m.type==='sale'?'Venda':m.type==='entry'?'Entrada':'Ajuste'} • Tam. ${esc(m.size)} • ${new Date(m.date).toLocaleString('pt-BR')}</div><div class="muted">${esc(m.detail||m.note||'')}${m.type==='sale'?' • Total: '+money(m.price*m.qty-(m.discount||0)):''}${m.supplier?' • Fornecedor: '+esc(m.supplier):''}</div></div>`).join(''):'<div class="empty">Nenhuma movimentação registrada.</div>'}
+
+
+function updateJerseyPreview(){
+ const nm=document.getElementById('orderPrintName')?.value.trim();
+ const nu=document.getElementById('orderNumber')?.value.trim();
+ const nameEl=document.getElementById('previewName'),numEl=document.getElementById('previewNumber');
+ if(nameEl)nameEl.textContent=(nm||'SEU NOME').toUpperCase().slice(0,16);
+ if(numEl)numEl.textContent=(nu||'10').slice(0,3);
+}
+['orderPrintName','orderNumber'].forEach(id=>document.getElementById(id).addEventListener('input',updateJerseyPreview));
+
+function clearOrderForm(){['orderEditId','orderCustomer','orderContact','orderModel','orderPrintName','orderNumber','orderTotal','orderDue','orderNote'].forEach(id=>document.getElementById(id).value='');document.getElementById('orderSize').value='';document.getElementById('orderQty').value=1;document.getElementById('orderPaid').value=0;document.getElementById('orderStatus').value='Pedido recebido';updateJerseyPreview()}
+function saveOrder(){
+ const id=document.getElementById('orderEditId').value,customer=document.getElementById('orderCustomer').value.trim(),size=document.getElementById('orderSize').value,qty=Number(document.getElementById('orderQty').value),totalValue=Number(document.getElementById('orderTotal').value),paid=Number(document.getElementById('orderPaid').value)||0;
+ if(!customer||!size||!Number.isInteger(qty)||qty<1||!Number.isFinite(totalValue)||totalValue<0||paid<0||paid>totalValue){alert('Confira cliente, tamanho, quantidade, valor total e sinal recebido.');return}
+ const obj={customer,contact:document.getElementById('orderContact').value.trim(),model:document.getElementById('orderModel').value.trim()||'Camisa personalizada',size,qty,printName:document.getElementById('orderPrintName').value.trim(),number:document.getElementById('orderNumber').value.trim(),total:totalValue,paid,due:document.getElementById('orderDue').value,status:document.getElementById('orderStatus').value,note:document.getElementById('orderNote').value.trim(),updated:new Date().toISOString()};
+ if(id){const o=db.orders.find(x=>x.id===id);if(o)Object.assign(o,obj)}else db.orders.unshift({id:crypto.randomUUID(),...obj,created:new Date().toISOString()});
+ persist();clearOrderForm();renderOrders();alert('Encomenda salva!');
+}
+function editOrder(id){const o=db.orders.find(x=>x.id===id);if(!o)return;document.getElementById('orderEditId').value=o.id;document.getElementById('orderCustomer').value=o.customer;document.getElementById('orderContact').value=o.contact||'';document.getElementById('orderModel').value=o.model||'';document.getElementById('orderSize').value=o.size;document.getElementById('orderQty').value=o.qty;document.getElementById('orderPrintName').value=o.printName||'';document.getElementById('orderNumber').value=o.number||'';updateJerseyPreview();document.getElementById('orderTotal').value=o.total;document.getElementById('orderPaid').value=o.paid;document.getElementById('orderDue').value=o.due||'';document.getElementById('orderStatus').value=o.status;document.getElementById('orderNote').value=o.note||'';window.scrollTo(0,0)}
+function addOrderPayment(id){const o=db.orders.find(x=>x.id===id);if(!o)return;const balance=o.total-o.paid;if(balance<=0){alert('Esta encomenda já está totalmente paga.');return}const raw=prompt('Saldo pendente: '+money(balance)+'\\nQuanto deseja registrar como novo pagamento?');if(raw===null)return;const amount=Number(raw.replace(',','.'));if(!Number.isFinite(amount)||amount<=0||amount>balance){alert('Informe um valor válido, até '+money(balance)+'.');return}o.paid+=amount;o.updated=new Date().toISOString();persist();renderOrders();alert('Pagamento registrado.')}
+function renderOrders(){const filter=document.getElementById('orderFilter')?.value||'',q=(document.getElementById('orderSearch')?.value||'').toLowerCase();const arr=(db.orders||[]).filter(o=>(!filter||o.status===filter)&&(o.customer+' '+o.model+' '+o.contact).toLowerCase().includes(q));const el=document.getElementById('ordersList');if(!el)return;el.innerHTML=arr.length?arr.map(o=>{const balance=o.total-o.paid;const custom=[o.printName?'Nome: '+o.printName:'',o.number?'Número: '+o.number:''].filter(Boolean).join(' • ');return `<article class="product"><div class="row"><div><h3>${esc(o.customer)}</h3><div class="muted">${esc(o.model)} • Tam. ${esc(o.size)} • ${o.qty} un.</div></div><span class="tag">${esc(o.status)}</span></div>${custom?`<p><b>Personalização:</b> ${esc(custom)}</p>`:''}<div class="grid2"><div><div class="muted">Total do pedido</div><b>${money(o.total)}</b></div><div><div class="muted">Saldo a receber</div><b class="${balance>0?'negative':'positive'}">${money(balance)}</b></div></div><div class="muted" style="margin-top:6px">Recebido: ${money(o.paid)}${o.due?' • Previsão: '+new Date(o.due+'T12:00:00').toLocaleDateString('pt-BR'):''}</div>${o.contact?`<div class="muted">Contato: ${esc(o.contact)}</div>`:''}${o.note?`<div class="muted">Obs.: ${esc(o.note)}</div>`:''}<div class="actions"><button class="btn secondary" onclick="editOrder('${o.id}')">Editar</button>${balance>0&&o.status!=='Cancelado'?`<button class="btn green" onclick="addOrderPayment('${o.id}')">＋ Receber pagamento</button>`:''}<button class="btn danger" onclick="deleteOrder('${o.id}')">Excluir</button></div></article>`}).join(''):'<div class="panel empty">Nenhuma encomenda encontrada.</div>'}
+function deleteOrder(id){if(confirm('Excluir esta encomenda?')){db.orders=db.orders.filter(o=>o.id!==id);persist();renderOrders()}}
+
+function renderReports(){const from=document.getElementById('dateFrom').value,to=document.getElementById('dateTo').value;const sales=db.moves.filter(m=>m.type==='sale'&&(!from||m.date.slice(0,10)>=from)&&(!to||m.date.slice(0,10)<=to));const revenue=sales.reduce((a,m)=>a+m.price*m.qty-(m.discount||0),0),profit=sales.reduce((a,m)=>a+(m.price*m.qty-(m.discount||0))-(m.cost||0)*m.qty,0),units=sales.reduce((a,m)=>a+m.qty,0);document.getElementById('repRevenue').textContent=money(revenue);document.getElementById('repProfit').textContent=money(profit);document.getElementById('repUnits').textContent=units;document.getElementById('repOrders').textContent=sales.length;const groups={};sales.forEach(m=>{groups[m.productName]=(groups[m.productName]||0)+m.qty});document.getElementById('repProducts').innerHTML=Object.keys(groups).length?Object.entries(groups).sort((a,b)=>b[1]-a[1]).map(([n,v])=>`<div class="row" style="padding:8px 0;border-bottom:1px solid var(--line)"><span>${esc(n)}</span><b>${v} un.</b></div>`).join(''):'Nenhuma venda no período.'}
+function renderAll(){const pieces=db.products.reduce((a,p)=>a+total(p),0),sold=db.moves.filter(m=>m.type==='sale').reduce((a,m)=>a+m.qty,0),value=db.products.reduce((a,p)=>a+total(p)*p.cost,0);document.getElementById('totalPieces').textContent=pieces;document.getElementById('totalModels').textContent=db.products.length;document.getElementById('totalSold').textContent=sold;document.getElementById('stockValue').textContent=money(value);renderProducts();if(document.getElementById('history').classList.contains('active'))renderHistory();if(document.getElementById('reports').classList.contains('active'))renderReports();if(document.getElementById('orders').classList.contains('active'))renderOrders()}
+function exportBackup(){const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='backup-meu-estoque-camisas.json';a.click();URL.revokeObjectURL(a.href)}
+function importBackup(){const f=document.getElementById('restoreFile').files[0];if(!f){alert('Escolha um arquivo de backup.');return}const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d.products)||!Array.isArray(d.moves))throw 0;if(!confirm('Restaurar substituirá os dados atuais deste aparelho. Continuar?'))return;db=d;db.orders=db.orders||[];persist();alert('Backup restaurado!')}catch(e){alert('Arquivo inválido ou incompatível.')}};r.readAsText(f)}
+renderAll();
+</script><script>
+if ('serviceWorker' in navigator) {
+ window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(e=>console.warn(e)));
+}
 </script>
-</body>
-</html>
+</body></html>
