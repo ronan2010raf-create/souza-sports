@@ -273,9 +273,9 @@ function applyRoleUI(){
  const show=(selector,visible)=>{const el=document.querySelector(selector);if(el)el.classList.toggle('hidden',!visible);};
  document.body.classList.toggle('role-collaborator',isCollaborator);
  show('[data-tab="access"]',isOwner);show('[data-tab="add"]',canManage);show('[data-tab="orders"]',canManage);
- show('#stock .row .btn',canManage);
+ show('#stock .row .btn',canManage);show('#restoreFile',!isCollaborator);show('#backup .btn.secondary',!isCollaborator);
  const costField=document.getElementById('buyCost');
- if(costField&&costField.parentElement)costField.parentElement.classList.toggle('hidden',!isOwner);
+ if(costField&&costField.parentElement)costField.parentElement.classList.toggle('hidden',isCollaborator);
  if(!isOwner&&document.getElementById('add')?.classList.contains('active'))showTab('stock');
  if(!isOwner&&document.getElementById('orders')?.classList.contains('active'))showTab('stock');
 }
