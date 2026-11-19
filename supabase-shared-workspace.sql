@@ -48,7 +48,7 @@ revoke all on public.souza_sports_workspace_invites from anon, authenticated;
 revoke all on public.souza_sports_workspace_data from anon, authenticated;
 grant select on public.souza_sports_workspaces to authenticated;
 grant select on public.souza_sports_workspace_members to authenticated;
-grant select on public.souza_sports_workspace_data to authenticated;
+
 
 drop policy if exists "SOUZA workspace members can view workspace" on public.souza_sports_workspaces;
 drop policy if exists "SOUZA members can view workspace membership" on public.souza_sports_workspace_members;
@@ -95,6 +95,69 @@ as $$
   where m.user_id = (select auth.uid())
   limit 1;
 $$;
+
+create or replace function public.get_souza_workspace_data()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $getdata$
+declare
+  v_uid uuid := auth.uid();
+  v_workspace uuid;
+  v_role text;
+  v_full_data jsonb;
+  v_updated_at timestamptz;
+  v_visible_data jsonb;
+begin
+  if v_uid is null then
+    raise exception 'É necessário entrar na sua conta.';
+  end if;
+
+  select m.workspace_id,m.role into v_workspace,v_role
+  from public.souza_sports_workspace_members m
+  where m.user_id = v_uid
+  limit 1;
+
+  if v_workspace is null then
+    raise exception 'Sua conta ainda não está vinculada ao estoque compartilhado.';
+  end if;
+
+  select d.data,d.updated_at into v_full_data,v_updated_at
+  from public.souza_sports_workspace_data d
+  where d.workspace_id = v_workspace;
+
+  if not found then
+    raise exception 'O estoque compartilhado ainda não foi inicializado.';
+  end if;
+
+  if v_role = 'owner' then
+    v_visible_data := v_full_data;
+  elsif v_role = 'collaborator' then
+    v_visible_data := jsonb_build_object(
+      'products',
+      coalesce((
+        select jsonb_agg(p.item - 'cost' order by p.ord)
+        from jsonb_array_elements(v_full_data->'products') with ordinality as p(item,ord)
+      ),'[]'::jsonb),
+      'moves',
+      coalesce((
+        select jsonb_agg(m.item - 'cost' - 'supplier' - 'note' order by m.ord)
+        from jsonb_array_elements(v_full_data->'moves') with ordinality as m(item,ord)
+      ),'[]'::jsonb),
+      'orders','[]'::jsonb
+    );
+  else
+    raise exception 'Papel de usuário inválido.';
+  end if;
+
+  return jsonb_build_object('data',v_visible_data,'updated_at',v_updated_at);
+end;
+$getdata$;
+
+revoke all on function public.get_souza_workspace_data() from PUBLIC, anon;
+grant execute on function public.get_souza_workspace_data() to authenticated;
 
 create or replace function public.ensure_souza_workspace()
 returns uuid
@@ -239,11 +302,6 @@ on public.souza_sports_workspace_members
 for select to authenticated
 using (public.souza_is_workspace_member(workspace_id));
 
-create policy "SOUZA members can read shared data"
-on public.souza_sports_workspace_data
-for select to authenticated
-using (public.souza_is_workspace_member(workspace_id));
-
 revoke all on function public.souza_is_workspace_member(uuid) from PUBLIC, anon;
 revoke all on function public.get_souza_workspace_id() from PUBLIC, anon;
 revoke all on function public.get_souza_user_role() from PUBLIC, anon;
@@ -286,6 +344,11 @@ declare
   v_delta integer;
   v_new_updated timestamptz;
   v_moves jsonb;
+  v_old_moves_redacted jsonb;
+  v_saved_products jsonb;
+  v_new_moves jsonb;
+  v_saved_moves jsonb;
+  v_saved_data jsonb;
 begin
   if v_uid is null then
     raise exception 'É necessário entrar na sua conta.';
@@ -323,11 +386,11 @@ begin
   if v_role = 'collaborator' then
     -- Colaboradores podem registrar vendas e entradas, que alteram quantidades.
     -- Não podem criar/remover produtos, alterar preços/cadastros, nem editar encomendas.
-    select coalesce(jsonb_agg(t.p - 'qty' order by t.p->>'id'),'[]'::jsonb)
+    select coalesce(jsonb_agg(t.p - 'qty' - 'cost' order by t.p->>'id'),'[]'::jsonb)
       into v_old_products
     from jsonb_array_elements(v_old_data->'products') as t(p);
 
-    select coalesce(jsonb_agg(t.p - 'qty' order by t.p->>'id'),'[]'::jsonb)
+    select coalesce(jsonb_agg(t.p - 'qty' - 'cost' order by t.p->>'id'),'[]'::jsonb)
       into v_new_products
     from jsonb_array_elements(p_data->'products') as t(p);
 
@@ -335,11 +398,20 @@ begin
       raise exception 'Acesso restrito: colaboradores não podem alterar o cadastro dos produtos.';
     end if;
 
-    if (p_data->'orders') is distinct from (v_old_data->'orders') then
+    if (p_data->'orders') is distinct from '[]'::jsonb then
       raise exception 'Acesso restrito: somente o administrador pode alterar encomendas.';
     end if;
 
-    if not ((p_data->'moves') @> (v_old_data->'moves')) then
+    if exists (
+      select 1
+      from jsonb_array_elements(v_old_data->'moves') as oldm(oldmove)
+      where not exists (
+        select 1
+        from jsonb_array_elements(p_data->'moves') as newm(newmove)
+        where newm.newmove->>'id' = oldm.oldmove->>'id'
+          and newm.newmove = oldm.oldmove - 'cost' - 'supplier' - 'note'
+      )
+    ) then
       raise exception 'Acesso restrito: o histórico de movimentações não pode ser apagado ou editado.';
     end if;
 
@@ -412,12 +484,46 @@ begin
         end if;
       end loop;
     end loop;
-  elsif v_role <> 'owner' then
+
+    -- Reintroduz no servidor custos e encomendas, que nunca são enviados ao colaborador.
+    select coalesce(jsonb_agg(oldp.p || jsonb_build_object('qty',newp.p->'qty') order by oldp.p->>'id'),'[]'::jsonb)
+      into v_saved_products
+    from jsonb_array_elements(v_old_data->'products') as oldp(p)
+    join jsonb_array_elements(p_data->'products') as newp(p)
+      on oldp.p->>'id' = newp.p->>'id';
+
+    select coalesce(jsonb_agg(
+      case when mv.item->>'type'='sale' then
+        mv.item || jsonb_build_object('cost',coalesce((
+          select nullif(prod.p->>'cost','')::numeric
+          from jsonb_array_elements(v_old_data->'products') as prod(p)
+          where prod.p->>'id' = mv.item->>'productId'
+          limit 1
+        ),0))
+      else mv.item end
+      order by mv.ord
+    ),'[]'::jsonb)
+      into v_new_moves
+    from jsonb_array_elements(p_data->'moves') with ordinality as mv(item,ord)
+    where not exists (
+      select 1 from jsonb_array_elements(v_old_data->'moves') as oldm(oldmove)
+      where oldm.oldmove->>'id' = mv.item->>'id'
+    );
+
+    v_saved_moves := (v_old_data->'moves') || v_new_moves;
+    v_saved_data := jsonb_build_object(
+      'products',v_saved_products,
+      'moves',v_saved_moves,
+      'orders',v_old_data->'orders'
+    );
+  elsif v_role = 'owner' then
+    v_saved_data := p_data;
+  else
     raise exception 'Papel de usuário inválido.';
   end if;
 
   update public.souza_sports_workspace_data
-  set data = p_data, updated_at = now()
+  set data = v_saved_data, updated_at = now()
   where workspace_id = v_workspace
   returning updated_at into v_new_updated;
 
