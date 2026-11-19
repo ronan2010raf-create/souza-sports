@@ -244,17 +244,6 @@ on public.souza_sports_workspace_data
 for select to authenticated
 using (public.souza_is_workspace_member(workspace_id));
 
-create policy "SOUZA members can create shared data"
-on public.souza_sports_workspace_data
-for insert to authenticated
-with check (public.souza_is_workspace_member(workspace_id));
-
-create policy "SOUZA members can update shared data"
-on public.souza_sports_workspace_data
-for update to authenticated
-using (public.souza_is_workspace_member(workspace_id))
-with check (public.souza_is_workspace_member(workspace_id));
-
 revoke all on function public.souza_is_workspace_member(uuid) from public, anon;
 revoke all on function public.get_souza_workspace_id() from public, anon;
 revoke all on function public.get_souza_user_role() from public, anon;
