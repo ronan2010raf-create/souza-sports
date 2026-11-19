@@ -1,24 +1,33 @@
-SOUZA SPORTS — PUBLICAÇÃO PWA
+SOUZA SPORTS — APLICATIVO E PUBLICAÇÃO
 
-O aplicativo está no arquivo index.html, com manifesto PWA, ícones e cache offline.
+PUBLICAÇÃO
+Site: https://ronan2010raf-create.github.io/souza-sports/
+Repositório: https://github.com/ronan2010raf-create/souza-sports
 
-PUBLICAÇÃO GRATUITA NO GITHUB PAGES
-1. Abra Settings > Pages neste repositório.
-2. Em Build and deployment, escolha Deploy from a branch.
-3. Selecione branch main e pasta /(root), depois clique em Save.
-4. Aguarde o GitHub Pages concluir a publicação. O endereço do site será mostrado nessa mesma tela.
-5. No Android, abra o endereço HTTPS no Chrome > menu ⋮ > Instalar app / Adicionar à tela inicial.
+SINCRONIZAÇÃO ONLINE (SUPABASE)
+1. Crie um projeto gratuito no Supabase. Escolha uma região próxima, se disponível.
+2. No Supabase, abra SQL Editor > New query.
+3. Abra o arquivo supabase-setup.sql deste repositório, copie todo o conteúdo e execute-o no SQL Editor.
+4. Em Project Settings > API Keys (ou Connect), copie o Project URL e a Publishable key (prefixo sb_publishable_).
+5. Insira esses dois valores nos campos SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY do index.html e salve a alteração no GitHub.
+6. Aguarde o GitHub Pages publicar a atualização.
+7. Abra o aplicativo no celular onde já existe estoque, entre ou crie sua conta e permita que os dados locais sejam enviados para a nuvem.
+8. Abra o aplicativo no computador e entre com o mesmo e-mail e senha. O estoque será carregado da mesma conta.
 
-DADOS E BACKUP
-Esta versão armazena os dados localmente no navegador do aparelho. A hospedagem
-publica os arquivos, mas não sincroniza o estoque entre aparelhos.
-Exporte o backup JSON regularmente e guarde cópias em locais seguros.
-Limpar os dados do navegador ou trocar de aparelho pode apagar os dados locais.
-Ainda não há login, banco remoto, criptografia própria ou backup automático.
-Não compartilhe senhas, tokens ou chaves secretas.
+SEGURANÇA
+A tabela public.souza_sports_data tem Row Level Security (RLS) ativado.
+Políticas limitam leitura, inclusão e atualização à conta autenticada que é dona da linha.
+A chave publicável pode aparecer no navegador se as políticas RLS estiverem corretamente configuradas.
+NUNCA coloque a Secret key ou service_role key no index.html, neste repositório ou em mensagens.
+Nunca compartilhe senha do Supabase, senha de banco de dados ou códigos de autenticação.
+O repositório e o site são públicos; não coloque dados de clientes nos arquivos do GitHub.
 
-PRIVACIDADE
-O repositório é público e o site publicado no GitHub Pages também será público.
-Não coloque informações pessoais de clientes, dados de pagamento ou outros dados
-comerciais nos arquivos do repositório. Os registros de estoque do aplicativo
-permanecem no armazenamento local do navegador deste aparelho.
+DADOS E CONFLITOS
+O aplicativo mantém uma cópia local e envia atualizações para a nuvem.
+Quando dois aparelhos alteram os dados separadamente, o app evita sobrescrever silenciosamente uma atualização mais recente; use o botão Atualizar para carregar a versão online.
+Para a primeira sincronização, faça login primeiro no telefone que contém o estoque.
+As fotos ficam dentro do JSON do estoque e consomem espaço do limite do banco.
+
+BACKUP E LIMITES
+Faça backup JSON regularmente pelo menu Backup e guarde cópias fora do telefone.
+O plano gratuito não inclui backups automáticos e projetos com baixa atividade podem ser pausados após sete dias. Consulte os limites atuais no painel Supabase.
