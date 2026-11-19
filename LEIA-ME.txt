@@ -1,33 +1,38 @@
 SOUZA SPORTS — APLICATIVO E PUBLICAÇÃO
 
-PUBLICAÇÃO
-Site: https://ronan2010raf-create.github.io/souza-sports/
-Repositório: https://github.com/ronan2010raf-create/souza-sports
+SITE
+https://ronan2010raf-create.github.io/souza-sports/
+REPOSITÓRIO
+https://github.com/ronan2010raf-create/souza-sports
 
-SINCRONIZAÇÃO ONLINE (SUPABASE)
-1. Crie um projeto gratuito no Supabase. Escolha uma região próxima, se disponível.
-2. No Supabase, abra SQL Editor > New query.
-3. Abra o arquivo supabase-setup.sql deste repositório, copie todo o conteúdo e execute-o no SQL Editor.
-4. Em Project Settings > API Keys (ou Connect), copie o Project URL e a Publishable key (prefixo sb_publishable_).
-5. Insira esses dois valores nos campos SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY do index.html e salve a alteração no GitHub.
-6. Aguarde o GitHub Pages publicar a atualização.
-7. Abra o aplicativo no celular onde já existe estoque, entre ou crie sua conta e permita que os dados locais sejam enviados para a nuvem.
-8. Abra o aplicativo no computador e entre com o mesmo e-mail e senha. O estoque será carregado da mesma conta.
+CONFIGURAÇÃO INICIAL SUPABASE
+1. Execute supabase-setup.sql no Supabase SQL Editor se ainda não tiver feito.
+2. Configure no index.html o Project URL e a Publishable key (sb_publishable_) do Supabase.
+3. Nunca publique Secret key/service_role, senha de banco de dados ou senha de usuários.
 
-SEGURANÇA
-A tabela public.souza_sports_data tem Row Level Security (RLS) ativado.
-Políticas limitam leitura, inclusão e atualização à conta autenticada que é dona da linha.
-A chave publicável pode aparecer no navegador se as políticas RLS estiverem corretamente configuradas.
-NUNCA coloque a Secret key ou service_role key no index.html, neste repositório ou em mensagens.
-Nunca compartilhe senha do Supabase, senha de banco de dados ou códigos de autenticação.
-O repositório e o site são públicos; não coloque dados de clientes nos arquivos do GitHub.
+ESTOQUE COMPARTILHADO E CONVITES
+1. Abra supabase-shared-workspace.sql no GitHub.
+2. Copie todo o conteúdo e execute no Supabase > SQL Editor > New query > Run.
+   Esse segundo script cria o espaço compartilhado, convites de uso único e validações
+   de permissões no servidor. É necessário para a nova versão.
+3. Abra o SOUZA SPORTS no telefone do administrador e entre com a conta principal.
+4. Na tela de vinculação, clique em “Criar estoque compartilhado com meus dados atuais”.
+   O procedimento migra a linha antiga dessa conta para o novo espaço compartilhado.
+5. Depois de carregar, abra a aba “Acessos” e gere um convite para colaborador.
+6. Envie o código de uso único ao colaborador. Ele cria uma conta própria no aplicativo
+   e cola o convite na tela de vinculação. O código expira em 7 dias e só pode ser usado uma vez.
+7. Outros aparelhos devem entrar usando suas próprias contas, já vinculadas ao mesmo espaço.
 
-DADOS E CONFLITOS
-O aplicativo mantém uma cópia local e envia atualizações para a nuvem.
-Quando dois aparelhos alteram os dados separadamente, o app evita sobrescrever silenciosamente uma atualização mais recente; use o botão Atualizar para carregar a versão online.
-Para a primeira sincronização, faça login primeiro no telefone que contém o estoque.
-As fotos ficam dentro do JSON do estoque e consomem espaço do limite do banco.
+PERMISSÕES
+Administrador: gerencia cadastros, preços, encomendas, estoque e acessos.
+Colaborador: consulta o estoque e registra vendas e entradas. O servidor bloqueia
+alterações do colaborador a cadastros de produtos e encomendas, além de impedir
+remoção/edição do histórico de movimentações.
 
-BACKUP E LIMITES
-Faça backup JSON regularmente pelo menu Backup e guarde cópias fora do telefone.
-O plano gratuito não inclui backups automáticos e projetos com baixa atividade podem ser pausados após sete dias. Consulte os limites atuais no painel Supabase.
+SEGURANÇA E BACKUPS
+A tabela do espaço compartilhado usa Row Level Security.
+A chave Publishable pode ficar no frontend quando RLS está configurado corretamente.
+Nunca coloque Secret key ou service_role no GitHub, no index.html ou em mensagens.
+Faça backups JSON regularmente e armazene cópias fora do aparelho.
+O plano gratuito não oferece backups automáticos e projetos com baixa atividade
+podem ser pausados. Confira os limites atuais no painel do Supabase.
