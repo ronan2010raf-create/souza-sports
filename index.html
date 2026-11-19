@@ -179,7 +179,102 @@ function authMessage(message,type=''){const el=document.getElementById('authMess
 function setLocalMode(){localOnly=true;cloudReady=false;hideAuth();setSyncStatus('Modo local — sem sincronização');renderAll()}
 function toggleAuthMode(){authMode=authMode==='login'?'signup':'login';document.getElementById('authTitle').textContent=authMode==='login'?'Acesse seu estoque':'Crie sua conta';document.getElementById('authSubmit').textContent=authMode==='login'?'Entrar':'Criar conta';document.getElementById('authToggle').textContent=authMode==='login'?'Primeiro acesso? Criar conta':'Já tenho uma conta — entrar';document.getElementById('authPassword').setAttribute('autocomplete',authMode==='login'?'current-password':'new-password');authMessage('')}
 async function submitAuth(){if(!cloudClient){authMessage('A conexão com o Supabase ainda não foi configurada.','error');return}const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;if(!email||!password){authMessage('Informe seu e-mail e sua senha.','error');return}if(password.length<8){authMessage('Use uma senha com pelo menos 8 caracteres.','error');return}const btn=document.getElementById('authSubmit');btn.disabled=true;btn.textContent='Aguarde...';try{if(authMode==='signup'){const {data,error}=await cloudClient.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin+window.location.pathname}});if(error)throw error;if(data.session){await initializeCloud(data.user)}else{authMode='login';document.getElementById('authTitle').textContent='Confirme seu e-mail';document.getElementById('authSubmit').textContent='Entrar';document.getElementById('authToggle').textContent='Voltar para criar conta';authMessage('Conta criada. Confira sua caixa de entrada e confirme o endereço de e-mail. Depois volte aqui e entre com sua senha.','ok')}}else{const {data,error}=await cloudClient.auth.signInWithPassword({email,password});if(error)throw error;await initializeCloud(data.user)}}catch(e){authMessage(e.message||'Não foi possível acessar a conta.','error')}finally{btn.disabled=false;btn.textContent=authMode==='login'?'Entrar':'Criar conta'}}
-async function initializeCloud(user){if(!cloudClient||!user)return;if(cloudReady&&cloudUser?.id===user.id)return;if(connectPromise)return connectPromise;connectPromise=(async()=>{setSyncStatus('Carregando estoque online...');const local=normalizeData(load());const {data:remote,error}=await cloudClient.from('souza_sports_data').select('data,updated_at').eq('user_id',user.id).maybeSingle();if(error)throw error;cloudUser=user;localOnly=false;if(remote){const remoteData=normalizeData(remote.data);const localHas=hasLocalRecords(local);const remoteString=JSON.stringify(remoteData),localString=JSON.stringify(local);let keepLocal=false;if(localHas&&localString!==remoteString){keepLocal=confirm('Encontramos dados salvos neste aparelho e dados diferentes na nuvem.\n\nOK: enviar os dados deste aparelho e substituir a versão online em TODOS os aparelhos.\nCancelar: manter a versão online e carregar os dados da nuvem neste aparelho.\n\nAntes de escolher, exporte um backup dos dados locais.')}db=keepLocal?local:remoteData;cloudVersion=remote.updated_at;cloudReady=true;cloudConflict=false;cloudDirty=keepLocal;saveLocalOnly();renderAll();hideAuth();if(keepLocal)await saveCloud(true);else setSyncStatus('Sincronizado • '+new Date(remote.updated_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))}else{db=local;cloudVersion=null;cloudReady=true;cloudConflict=false;cloudDirty=true;saveLocalOnly();renderAll();hideAuth();await saveCloud(true)}})().catch(e=>{cloudReady=false;setSyncStatus('Falha na conexão');showAuth();authMessage('Não foi possível carregar a tabela de sincronização. Confira se executou o arquivo supabase-setup.sql no SQL Editor do Supabase.\n\nDetalhe: '+(e.message||e),'error')}).finally(()=>{connectPromise=null});return connectPromise}
+async function initializeCloud(user){
+ if(!cloudClient||!user)return;
+ if(cloudReady&&cloudUser?.id===user.id)return;
+ if(connectPromise)return connectPromise;
+ connectPromise=(async()=>{
+  setSyncStatus('Verificando espaço compartilhado...');
+  cloudUser=user;localOnly=false;
+  const local=normalizeData(load());
+  const {data:foundWorkspace,error:workspaceError}=await cloudClient.rpc('get_souza_workspace_id');
+  if(workspaceError)throw workspaceError;
+  if(!foundWorkspace){
+   cloudReady=false;workspaceId=null;workspaceRole=null;applyRoleUI();
+   showAuth();document.getElementById('workspaceSetup').classList.remove('hidden');
+   authMessage('Esta conta ainda não está vinculada a um estoque compartilhado.\n\nNa sua conta principal, clique em “Criar estoque compartilhado com meus dados atuais”. Para outra pessoa, cole o código que o administrador gerar.');
+   return;
+  }
+  workspaceId=foundWorkspace;
+  const {data:role,error:roleError}=await cloudClient.rpc('get_souza_user_role');
+  if(roleError)throw roleError;
+  workspaceRole=role;
+  const {data:remote,error}=await cloudClient.from('souza_sports_workspace_data').select('data,updated_at').eq('workspace_id',workspaceId).maybeSingle();
+  if(error)throw error;
+  if(!remote)throw new Error('O espaço existe, mas ainda não há dados. Peça ao administrador para conferir a configuração.');
+  const remoteData=normalizeData(remote.data);
+  const localHas=hasLocalRecords(local);
+  const remoteString=JSON.stringify(remoteData),localString=JSON.stringify(local);
+  let keepLocal=false;
+  if(workspaceRole==='owner'&&localHas&&localString!==remoteString){
+   keepLocal=confirm('Encontramos dados salvos neste aparelho e dados diferentes na nuvem.\n\nOK: enviar os dados deste aparelho e substituir a versão compartilhada em todos os aparelhos.\nCancelar: carregar os dados que já estão na nuvem.\n\nAntes de escolher, exporte um backup.');
+  }else if(workspaceRole==='collaborator'&&localHas&&localString!==remoteString){
+   if(!confirm('Este aparelho tem dados locais diferentes do estoque compartilhado. Para proteger o estoque principal, será carregada a versão online. Faça um backup local antes, se precisar guardar esses dados. Continuar?')){
+    showAuth();authMessage('A entrada foi interrompida para você fazer um backup dos dados locais.');return;
+   }
+  }
+  db=keepLocal?local:remoteData;
+  cloudVersion=remote.updated_at;cloudReady=true;cloudConflict=false;cloudDirty=keepLocal;
+  saveLocalOnly();renderAll();applyRoleUI();hideAuth();
+  document.getElementById('workspaceSetup').classList.add('hidden');
+  if(keepLocal)await saveCloud(true);
+  else setSyncStatus('Sincronizado • '+new Date(remote.updated_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
+ })().catch(e=>{
+  cloudReady=false;setSyncStatus('Falha na conexão');showAuth();
+  authMessage('Não foi possível carregar o estoque compartilhado. Confira se executou supabase-shared-workspace.sql no SQL Editor.\n\nDetalhe: '+(e.message||e),'error');
+ }).finally(()=>{connectPromise=null});
+ return connectPromise;
+}
+async function createWorkspaceFromLegacy(){
+ if(!cloudClient||!cloudUser){authMessage('Entre na conta principal antes de criar o estoque compartilhado.','error');return;}
+ try{
+  authMessage('Criando o espaço compartilhado e migrando os dados atuais...');
+  const {data,error}=await cloudClient.rpc('ensure_souza_workspace');
+  if(error)throw error;
+  if(!data)throw new Error('O Supabase não retornou o identificador do estoque.');
+  workspaceId=data;
+  await initializeCloud(cloudUser);
+ }catch(e){authMessage('Não foi possível criar o espaço compartilhado: '+(e.message||e),'error');}
+}
+async function joinWorkspaceFromInvite(){
+ if(!cloudClient||!cloudUser){authMessage('Entre primeiro na conta do colaborador.','error');return;}
+ const code=document.getElementById('joinInviteCode').value.trim();
+ if(!code){authMessage('Cole o código de convite recebido do administrador.','error');return;}
+ try{
+  authMessage('Validando convite...');
+  const {data,error}=await cloudClient.rpc('join_souza_workspace',{p_code:code});
+  if(error)throw error;
+  if(!data)throw new Error('O Supabase não retornou o estoque compartilhado.');
+  document.getElementById('joinInviteCode').value='';
+  await initializeCloud(cloudUser);
+ }catch(e){authMessage('Não foi possível aceitar o convite: '+(e.message||e),'error');}
+}
+async function generateWorkspaceInvite(){
+ if(!cloudReady||workspaceRole!=='owner'){alert('Somente o administrador pode gerar convites.');return;}
+ const btn=document.querySelector('#access button[onclick="generateWorkspaceInvite()"]');btn.disabled=true;
+ try{
+  const {data,error}=await cloudClient.rpc('create_souza_invite');
+  if(error)throw error;
+  document.getElementById('inviteCodeOutput').value=data;
+  document.getElementById('inviteOutput').classList.remove('hidden');
+  document.getElementById('accessMessage').textContent='Convite criado. Ele pode ser usado uma única vez e expira em 7 dias.';
+ }catch(e){document.getElementById('accessMessage').textContent='Erro ao gerar convite: '+(e.message||e);}
+ finally{btn.disabled=false;}
+}
+async function copyWorkspaceInvite(){
+ const value=document.getElementById('inviteCodeOutput').value;if(!value)return;
+ try{await navigator.clipboard.writeText(value);document.getElementById('accessMessage').textContent='Código copiado. Envie-o somente para a pessoa que terá acesso.';}
+ catch(e){document.getElementById('accessMessage').textContent='Selecione e copie o código exibido no campo.';}
+}
+function applyRoleUI(){
+ const isOwner=workspaceRole==='owner';
+ const show=(selector,visible)=>{const el=document.querySelector(selector);if(el)el.classList.toggle('hidden',!visible);};
+ document.body.classList.toggle('role-collaborator',workspaceRole==='collaborator');
+ show('[data-tab="access"]',isOwner);show('[data-tab="add"]',isOwner);show('[data-tab="orders"]',isOwner);
+ show('#stock .row .btn',isOwner);
+ if(!isOwner&&document.getElementById('add')?.classList.contains('active'))showTab('stock');
+ if(!isOwner&&document.getElementById('orders')?.classList.contains('active'))showTab('stock');
+}
 function queueCloudSave(){if(!cloudReady||cloudConflict||localOnly)return;clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(()=>saveCloud(),900)}
 async function saveCloud(force=false){if(!cloudReady||!cloudUser||!cloudClient||localOnly||cloudConflict)return;if(cloudSaveRunning){return}cloudSaveRunning=true;const snapshot=JSON.parse(JSON.stringify(normalizeData(db)));setSyncStatus('Enviando alterações...');try{const {data:remote,error:readError}=await cloudClient.from('souza_sports_data').select('updated_at').eq('user_id',cloudUser.id).maybeSingle();if(readError)throw readError;if(!force&&((cloudVersion&&remote?.updated_at!==cloudVersion)||(!cloudVersion&&remote))){cloudConflict=true;setSyncStatus('Alteração em outro aparelho — toque em Atualizar');return}const timestamp=new Date().toISOString();const {data,error}=await cloudClient.from('souza_sports_data').upsert({user_id:cloudUser.id,data:snapshot,updated_at:timestamp},{onConflict:'user_id'}).select('updated_at').single();if(error)throw error;cloudVersion=data.updated_at;cloudDirty=JSON.stringify(normalizeData(db))!==JSON.stringify(snapshot);setSyncStatus(cloudDirty?'Há alterações pendentes':'Sincronizado • '+new Date(data.updated_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));if(cloudDirty)queueCloudSave()}catch(e){setSyncStatus('Sem conexão — dados mantidos neste aparelho');console.error('SOUZA SPORTS sync:',e)}finally{cloudSaveRunning=false}}
 async function manualSync(){if(!cloudReady||!cloudUser){authMessage('Entre na sua conta para sincronizar.');showAuth();return}setSyncStatus('Verificando nuvem...');try{const {data,error}=await cloudClient.from('souza_sports_data').select('data,updated_at').eq('user_id',cloudUser.id).maybeSingle();if(error)throw error;if(!data){await saveCloud(true);return}const remoteData=normalizeData(data.data);if(JSON.stringify(remoteData)!==JSON.stringify(normalizeData(db))){if(!confirm('Há dados mais recentes na nuvem. Deseja substituir os dados deste aparelho pela versão online? Exporte um backup local antes, se precisar guardá-lo.')){setSyncStatus('Mantendo dados deste aparelho');return}db=remoteData;saveLocalOnly();renderAll()}cloudVersion=data.updated_at;cloudDirty=false;cloudConflict=false;setSyncStatus('Sincronizado • '+new Date(data.updated_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))}catch(e){setSyncStatus('Falha ao atualizar da nuvem');alert('Não foi possível sincronizar: '+(e.message||e))}}
