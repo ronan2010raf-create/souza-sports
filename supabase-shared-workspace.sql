@@ -300,10 +300,10 @@ begin
     raise exception 'Sua conta ainda não está vinculada ao estoque compartilhado.';
   end if;
 
-  if jsonb_typeof(p_data) <> 'object'
-     or jsonb_typeof(p_data->'products') <> 'array'
-     or jsonb_typeof(p_data->'moves') <> 'array'
-     or jsonb_typeof(p_data->'orders') <> 'array' then
+  if jsonb_typeof(p_data) is distinct from 'object'
+     or jsonb_typeof(p_data->'products') is distinct from 'array'
+     or jsonb_typeof(p_data->'moves') is distinct from 'array'
+     or jsonb_typeof(p_data->'orders') is distinct from 'array' then
     raise exception 'Formato de dados inválido.';
   end if;
 
@@ -351,8 +351,24 @@ begin
         where oldm.oldmove->>'id' = t.mv->>'id'
       )
     loop
+      if v_moves->>'id' is null or length(v_moves->>'id') < 8 then
+        raise exception 'Movimentação sem identificador válido.';
+      end if;
       if v_moves->>'type' not in ('sale','entry') then
         raise exception 'Acesso restrito: colaboradores podem registrar apenas vendas e entradas.';
+      end if;
+      if coalesce(nullif(v_moves->>'qty','')::integer,0) <= 0 then
+        raise exception 'A quantidade da movimentação deve ser maior que zero.';
+      end if;
+      if v_moves->>'size' not in ('P','M','G','GG','XG','2XL','3XL','4XL') then
+        raise exception 'Tamanho inválido na movimentação.';
+      end if;
+      if not exists (
+        select 1
+        from jsonb_array_elements(p_data->'products') as products(product)
+        where products.product->>'id' = v_moves->>'productId'
+      ) then
+        raise exception 'A movimentação referencia um produto inexistente.';
       end if;
     end loop;
 
