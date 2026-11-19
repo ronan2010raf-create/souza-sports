@@ -1,5 +1,5 @@
-const CACHE_NAME='souza-sports-v1';
-const FILES=['./','./index.html','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png','./app-part-1.txt','./app-part-2.txt','./app-part-3.txt','./app-part-4.txt','./app-part-5.txt','./app-part-6.txt','./app-part-7.txt'];
+const CACHE_NAME='souza-sports-v2';
+const FILES=['./','./index.html','./manifest.webmanifest','./sw.js','./icons/icon-192.svg','./icons/icon-512.svg'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(FILES)));self.skipWaiting()});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE_NAME).map(key=>caches.delete(key)))));self.clients.claim()});
 self.addEventListener('fetch',event=>{
