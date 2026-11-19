@@ -334,13 +334,13 @@ begin
   if v_role = 'collaborator' then
     -- Colaboradores podem registrar vendas e entradas, que alteram quantidades.
     -- Não podem criar/remover produtos, alterar preços/cadastros, nem editar encomendas.
-    select coalesce(jsonb_agg(p - 'qty' order by p->>'id'),'[]'::jsonb)
+    select coalesce(jsonb_agg(t.p - 'qty' order by t.p->>'id'),'[]'::jsonb)
       into v_old_products
-    from jsonb_array_elements(v_old_data->'products') p;
+    from jsonb_array_elements(v_old_data->'products') as t(p);
 
-    select coalesce(jsonb_agg(p - 'qty' order by p->>'id'),'[]'::jsonb)
+    select coalesce(jsonb_agg(t.p - 'qty' order by t.p->>'id'),'[]'::jsonb)
       into v_new_products
-    from jsonb_array_elements(p_data->'products') p;
+    from jsonb_array_elements(p_data->'products') as t(p);
 
     if v_new_products is distinct from v_old_products then
       raise exception 'Acesso restrito: colaboradores não podem alterar o cadastro dos produtos.';
@@ -355,20 +355,20 @@ begin
     end if;
 
     for v_moves in
-      select mv
-      from jsonb_array_elements(p_data->'moves') mv
-      where not ((v_old_data->'moves') @> jsonb_build_array(mv))
+      select t.mv
+      from jsonb_array_elements(p_data->'moves') as t(mv)
+      where not ((v_old_data->'moves') @> jsonb_build_array(t.mv))
     loop
       if v_moves->>'type' not in ('sale','entry') then
         raise exception 'Acesso restrito: colaboradores podem registrar apenas vendas e entradas.';
       end if;
     end loop;
 
-    for v_product in select p from jsonb_array_elements(p_data->'products') p
+    for v_product in select t.p from jsonb_array_elements(p_data->'products') as t(p)
     loop
       select p0 into v_old_product
-      from jsonb_array_elements(v_old_data->'products') p0
-      where p0->>'id' = v_product->>'id'
+      from jsonb_array_elements(v_old_data->'products') as t(p0)
+      where t.p0->>'id' = v_product->>'id'
       limit 1;
 
       if v_old_product is null then
@@ -391,10 +391,10 @@ begin
           end
         ),0)
         into v_delta
-        from jsonb_array_elements(p_data->'moves') mv
-        where not ((v_old_data->'moves') @> jsonb_build_array(mv))
-          and mv->>'productId' = v_product->>'id'
-          and mv->>'size' = v_size;
+        from jsonb_array_elements(p_data->'moves') as t(mv)
+        where not ((v_old_data->'moves') @> jsonb_build_array(t.mv))
+          and t.mv->>'productId' = v_product->>'id'
+          and t.mv->>'size' = v_size;
 
         if v_new_qty - v_old_qty <> v_delta then
           raise exception 'A quantidade de estoque deve corresponder às movimentações registradas.';
