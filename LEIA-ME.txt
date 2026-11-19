@@ -36,3 +36,13 @@ Nunca coloque Secret key ou service_role no GitHub, no index.html ou em mensagen
 Faça backups JSON regularmente e armazene cópias fora do aparelho.
 O plano gratuito não oferece backups automáticos e projetos com baixa atividade
 podem ser pausados. Confira os limites atuais no painel do Supabase.
+
+
+PERFIL DE SÓCIO
+Para adicionar sócio com os mesmos acessos operacionais, execute também
+supabase-partner-role.sql no Supabase > SQL Editor > New query.
+Depois, atualize o SOUZA SPORTS e entre com a conta de administrador.
+Na aba Acessos, gere o convite de sócio. O sócio cria conta própria e aceita
+o código de uso único. Somente o administrador principal pode gerar convites;
+o sócio tem os acessos operacionais completos (produtos, preços, compras,
+vendas, encomendas e relatórios).
