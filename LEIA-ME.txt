@@ -25,9 +25,9 @@ ESTOQUE COMPARTILHADO E CONVITES
 
 PERMISSÕES
 Administrador: gerencia cadastros, preços, encomendas, estoque e acessos.
-Colaborador: consulta o estoque e registra vendas e entradas. O servidor bloqueia
-alterações do colaborador a cadastros de produtos e encomendas, além de impedir
-remoção/edição do histórico de movimentações.
+Colaborador: consulta o estoque e registra vendas e entradas. Não recebe os custos
+internos nem as encomendas na tela. O servidor bloqueia alterações a cadastros de
+produtos, custos, encomendas e histórico anterior de movimentações.
 
 SEGURANÇA E BACKUPS
 A tabela do espaço compartilhado usa Row Level Security.
