@@ -61,7 +61,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = public, auth, pg_temp
+set search_path = ''
 as $$
   select exists (
     select 1 from public.souza_sports_workspace_members m
@@ -75,7 +75,7 @@ returns uuid
 language sql
 stable
 security definer
-set search_path = public, auth, pg_temp
+set search_path = ''
 as $$
   select m.workspace_id
   from public.souza_sports_workspace_members m
@@ -88,7 +88,7 @@ returns text
 language sql
 stable
 security definer
-set search_path = public, auth, pg_temp
+set search_path = ''
 as $$
   select m.role
   from public.souza_sports_workspace_members m
@@ -100,7 +100,7 @@ create or replace function public.ensure_souza_workspace()
 returns uuid
 language plpgsql
 security definer
-set search_path = public, auth, pg_temp
+set search_path = ''
 as $$
 declare
   v_uid uuid := auth.uid();
@@ -147,7 +147,7 @@ create or replace function public.create_souza_invite()
 returns text
 language plpgsql
 security definer
-set search_path = public, auth, pg_temp
+set search_path = ''
 as $$
 declare
   v_uid uuid := auth.uid();
@@ -183,7 +183,7 @@ create or replace function public.join_souza_workspace(p_code text)
 returns uuid
 language plpgsql
 security definer
-set search_path = public, auth, pg_temp
+set search_path = ''
 as $$
 declare
   v_uid uuid := auth.uid();
@@ -268,7 +268,7 @@ create or replace function public.save_souza_workspace_data(
 returns timestamptz
 language plpgsql
 security definer
-set search_path = public, auth, pg_temp
+set search_path = ''
 as $savefn$
 declare
   v_uid uuid := auth.uid();
