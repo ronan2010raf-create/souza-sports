@@ -340,7 +340,7 @@ function persist(){try{localStorage.setItem(KEY,JSON.stringify(db));renderAll();
 function money(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function total(p){return SIZES.reduce((a,s)=>a+(Number(p.qty[s])||0),0)}
-function showTab(id){document.querySelectorAll('.section').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===id));if(id==='sale'){fillProductSelect('saleProduct');updateSaleSizes()}if(id==='purchase'){fillProductSelect('buyProduct');updateBuySizes()}if(id==='history')renderHistory();if(id==='orders')renderOrders();if(id==='reports')renderReports();window.scrollTo(0,0)}
+function showTab(id){if(workspaceRole==='collaborator'&&['add','orders','access'].includes(id))id='stock';document.querySelectorAll('.section').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===id));if(id==='sale'){fillProductSelect('saleProduct');updateSaleSizes()}if(id==='purchase'){fillProductSelect('buyProduct');updateBuySizes()}if(id==='history')renderHistory();if(id==='orders')renderOrders();if(id==='reports')renderReports();window.scrollTo(0,0)}
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 function makeSizeInputs(vals={}){document.getElementById('sizeInputs').innerHTML=SIZES.map(s=>`<div class="sizebox"><label>${s}</label><input type="number" min="0" step="1" id="q_${s}" value="${vals[s]??0}"></div>`).join('')}
 makeSizeInputs();
