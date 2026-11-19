@@ -276,11 +276,60 @@ function applyRoleUI(){
  if(!isOwner&&document.getElementById('orders')?.classList.contains('active'))showTab('stock');
 }
 function queueCloudSave(){if(!cloudReady||cloudConflict||localOnly)return;clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(()=>saveCloud(),900)}
-async function saveCloud(force=false){if(!cloudReady||!cloudUser||!cloudClient||localOnly||cloudConflict)return;if(cloudSaveRunning){return}cloudSaveRunning=true;const snapshot=JSON.parse(JSON.stringify(normalizeData(db)));setSyncStatus('Enviando alterações...');try{const {data:remote,error:readError}=await cloudClient.from('souza_sports_data').select('updated_at').eq('user_id',cloudUser.id).maybeSingle();if(readError)throw readError;if(!force&&((cloudVersion&&remote?.updated_at!==cloudVersion)||(!cloudVersion&&remote))){cloudConflict=true;setSyncStatus('Alteração em outro aparelho — toque em Atualizar');return}const timestamp=new Date().toISOString();const {data,error}=await cloudClient.from('souza_sports_data').upsert({user_id:cloudUser.id,data:snapshot,updated_at:timestamp},{onConflict:'user_id'}).select('updated_at').single();if(error)throw error;cloudVersion=data.updated_at;cloudDirty=JSON.stringify(normalizeData(db))!==JSON.stringify(snapshot);setSyncStatus(cloudDirty?'Há alterações pendentes':'Sincronizado • '+new Date(data.updated_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));if(cloudDirty)queueCloudSave()}catch(e){setSyncStatus('Sem conexão — dados mantidos neste aparelho');console.error('SOUZA SPORTS sync:',e)}finally{cloudSaveRunning=false}}
-async function manualSync(){if(!cloudReady||!cloudUser){authMessage('Entre na sua conta para sincronizar.');showAuth();return}setSyncStatus('Verificando nuvem...');try{const {data,error}=await cloudClient.from('souza_sports_data').select('data,updated_at').eq('user_id',cloudUser.id).maybeSingle();if(error)throw error;if(!data){await saveCloud(true);return}const remoteData=normalizeData(data.data);if(JSON.stringify(remoteData)!==JSON.stringify(normalizeData(db))){if(!confirm('Há dados mais recentes na nuvem. Deseja substituir os dados deste aparelho pela versão online? Exporte um backup local antes, se precisar guardá-lo.')){setSyncStatus('Mantendo dados deste aparelho');return}db=remoteData;saveLocalOnly();renderAll()}cloudVersion=data.updated_at;cloudDirty=false;cloudConflict=false;setSyncStatus('Sincronizado • '+new Date(data.updated_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))}catch(e){setSyncStatus('Falha ao atualizar da nuvem');alert('Não foi possível sincronizar: '+(e.message||e))}}
-async function signOutCloud(){if(cloudDirty&&!confirm('Há alterações locais ainda não sincronizadas. Sair mesmo assim?'))return;if(cloudClient)await cloudClient.auth.signOut();cloudReady=false;cloudUser=null;cloudVersion=null;cloudConflict=false;localOnly=false;showAuth();authMessage('Você saiu da conta. Entre novamente para acessar o estoque online.')}
+async function saveCloud(force=false){
+ if(!cloudReady||!cloudUser||!cloudClient||!workspaceId||localOnly||cloudConflict)return;
+ if(cloudSaveRunning)return;
+ cloudSaveRunning=true;
+ const snapshot=JSON.parse(JSON.stringify(normalizeData(db)));
+ setSyncStatus('Enviando alterações...');
+ try{
+  const {data,error}=await cloudClient.rpc('save_souza_workspace_data',{p_data:snapshot,p_expected_updated_at:cloudVersion});
+  if(error){
+   if((error.message||'').includes('CONFLICT')){cloudConflict=true;setSyncStatus('Alteração em outro aparelho — toque em Atualizar');return;}
+   throw error;
+  }
+  cloudVersion=data;
+  cloudDirty=JSON.stringify(normalizeData(db))!==JSON.stringify(snapshot);
+  setSyncStatus(cloudDirty?'Há alterações pendentes':'Sincronizado • '+new Date(data).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
+  if(cloudDirty)queueCloudSave();
+ }catch(e){
+  setSyncStatus('Falha ao sincronizar — dados mantidos neste aparelho');
+  console.error('SOUZA SPORTS sync:',e);
+ }finally{cloudSaveRunning=false;}
+}
+async function manualSync(){
+ if(!cloudReady||!cloudUser||!workspaceId){authMessage('Entre na sua conta para sincronizar.');showAuth();return;}
+ setSyncStatus('Verificando nuvem...');
+ try{
+  const {data,error}=await cloudClient.from('souza_sports_workspace_data').select('data,updated_at').eq('workspace_id',workspaceId).maybeSingle();
+  if(error)throw error;
+  if(!data)throw new Error('Estoque compartilhado não encontrado.');
+  const remoteData=normalizeData(data.data);
+  if(JSON.stringify(remoteData)!==JSON.stringify(normalizeData(db))){
+   if(!confirm('Há dados mais recentes na nuvem. Deseja substituir os dados deste aparelho pela versão online? Exporte um backup local antes, se precisar guardá-lo.')){
+    setSyncStatus('Mantendo dados deste aparelho');return;
+   }
+   db=remoteData;saveLocalOnly();renderAll();
+  }
+  cloudVersion=data.updated_at;cloudDirty=false;cloudConflict=false;
+  setSyncStatus('Sincronizado • '+new Date(data.updated_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
+ }catch(e){setSyncStatus('Falha ao atualizar da nuvem');alert('Não foi possível sincronizar: '+(e.message||e));}
+}
+async function signOutCloud(){
+ if(cloudDirty&&!confirm('Há alterações locais ainda não sincronizadas. Sair mesmo assim?'))return;
+ if(cloudClient)await cloudClient.auth.signOut();
+ cloudReady=false;cloudUser=null;cloudVersion=null;workspaceId=null;workspaceRole=null;cloudConflict=false;localOnly=false;
+ applyRoleUI();showAuth();authMessage('Você saiu da conta. Entre novamente para acessar o estoque online.');
+}
 function initCloud(){const configured=SUPABASE_URL.startsWith('https://')&&SUPABASE_URL.includes('.supabase.co')&&SUPABASE_PUBLISHABLE_KEY.startsWith('sb_publishable_');if(!configured){showAuth();authMessage('A sincronização está preparada, mas aguarda a URL do projeto e a chave PUBLICÁVEL do Supabase. Enquanto isso, você pode continuar usando o modo local neste aparelho.');return}if(!window.supabase?.createClient){showAuth();authMessage('Não foi possível carregar a biblioteca de conexão. Verifique sua internet.','error');return}cloudClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});cloudClient.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){cloudReady=false;cloudUser=null;showAuth()}else if(session&&event==='SIGNED_IN'&&!cloudReady){setTimeout(()=>initializeCloud(session.user),0)}});cloudClient.auth.getSession().then(({data,error})=>{if(error)throw error;if(data.session)initializeCloud(data.session.user);else{showAuth();authMessage('Entre com sua conta para acessar o estoque compartilhado.')}}).catch(e=>{showAuth();authMessage('Erro ao verificar a sessão: '+e.message,'error')})}
-function checkCloudUpdates(){if(!cloudReady||!cloudUser||cloudDirty||cloudConflict||cloudSaveRunning||document.visibilityState==='hidden')return;cloudClient.from('souza_sports_data').select('data,updated_at').eq('user_id',cloudUser.id).maybeSingle().then(({data,error})=>{if(error||!data||data.updated_at===cloudVersion)return;db=normalizeData(data.data);cloudVersion=data.updated_at;saveLocalOnly();renderAll();setSyncStatus('Atualizado da nuvem • '+new Date(data.updated_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))}).catch(e=>console.warn('SOUZA SPORTS atualização:',e))}
+function checkCloudUpdates(){
+ if(!cloudReady||!cloudUser||!workspaceId||cloudDirty||cloudConflict||cloudSaveRunning||document.visibilityState==='hidden')return;
+ cloudClient.from('souza_sports_workspace_data').select('data,updated_at').eq('workspace_id',workspaceId).maybeSingle().then(({data,error})=>{
+  if(error||!data||data.updated_at===cloudVersion)return;
+  db=normalizeData(data.data);cloudVersion=data.updated_at;saveLocalOnly();renderAll();
+  setSyncStatus('Atualizado da nuvem • '+new Date(data.updated_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
+ }).catch(e=>console.warn('SOUZA SPORTS atualização:',e));
+}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkCloudUpdates()});
 setInterval(checkCloudUpdates,12000);
 let authBootStarted=false;
