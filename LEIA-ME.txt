@@ -54,3 +54,14 @@ Os produtos do tipo INFANTIL usam 16, 18, 20, 22, 24, 26 e 28.
 Vendas, compras, entradas, estoque e encomendas aceitam as duas grades.
 Para ativar o acesso de sócio e a validação dos tamanhos infantis no banco,
 execute a versão atual de supabase-partner-role.sql no Supabase SQL Editor.
+
+
+CRIAR USUÁRIOS SEM CONFIRMAÇÃO DE E-MAIL
+- O administrador principal pode criar contas na aba Acessos.
+- O login é o endereço de e-mail informado; a senha é definida pelo administrador.
+- A Edge Function create-workspace-user cria a conta com e-mail confirmado e associa imediatamente ao estoque compartilhado.
+- A operação administrativa é executada no servidor Supabase. Nunca copie uma chave secreta/service_role para o index.html.
+- Publicar a função em Supabase > Edge Functions > Deploy a new function > Via Editor, usando o código em supabase/functions/create-workspace-user/index.ts.
+- A função usa as variáveis seguras padrão do projeto Supabase (SUPABASE_URL, SUPABASE_PUBLISHABLE_KEYS e SUPABASE_SECRET_KEYS).
+- Somente membros com perfil owner podem criar usuários. Escolha Sócio (partner) ou Colaborador (collaborator).
+- O perfil Sócio exige que o script supabase-partner-role.sql esteja aplicado no banco.
