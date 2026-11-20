@@ -41,7 +41,7 @@ body.role-collaborator #stock .actions button:first-child,body.role-collaborator
   <label for="authEmail">E-mail</label><input id="authEmail" type="email" autocomplete="email" placeholder="Seu e-mail">
   <label for="authPassword">Senha</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="Sua senha">
   <button class="btn green" id="authSubmit" onclick="submitAuth()">Entrar</button>
-  <button class="btn link" id="authToggle" onclick="toggleAuthMode()">Primeiro acesso? Criar conta</button>
+  <div class="muted" style="margin-top:12px;text-align:center">O acesso é criado pelo administrador. Solicite seu login e senha ao responsável pelo estoque.</div>
   <button class="btn secondary" id="localModeBtn" onclick="setLocalMode()">Continuar somente neste aparelho</button>
   <div id="workspaceSetup" class="hidden" style="border-top:1px solid var(--line);margin-top:16px;padding-top:12px">
    <h3 style="margin:0 0 6px">Vincular ao estoque compartilhado</h3>
@@ -279,7 +279,7 @@ async function createWorkspaceUser(){
  const password=document.getElementById('newUserPassword').value;
  const role=document.getElementById('newUserRole').value;
  if(!displayName){document.getElementById('accessMessage').textContent='Informe o nome do usuário.';return}
- if(!email||!/^\\S+@\\S+\\.\\S+$/.test(email)){document.getElementById('accessMessage').textContent='Informe um e-mail válido para usar como login.';return}
+ if(!email.includes('@')||!email.split('@')[1]?.includes('.')){document.getElementById('accessMessage').textContent='Informe um e-mail válido para usar como login.';return}
  if(password.length<8){document.getElementById('accessMessage').textContent='A senha precisa ter pelo menos 8 caracteres.';return}
  if(!['partner','collaborator'].includes(role)){document.getElementById('accessMessage').textContent='Selecione um tipo de acesso válido.';return}
  const btn=document.getElementById('createWorkspaceUserBtn');
@@ -306,7 +306,7 @@ async function createWorkspaceUser(){
    'Perfil: '+roleLabel,
    '',
    'Entre no aplicativo usando o login e a senha informados.'
-  ].join('\\n');
+  ].join(String.fromCharCode(10));
   document.getElementById('createdUserCredentials').value=credentials;
   document.getElementById('createdUserOutput').classList.remove('hidden');
   document.getElementById('newUserName').value='';
