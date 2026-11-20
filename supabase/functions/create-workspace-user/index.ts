@@ -42,8 +42,8 @@ Deno.serve(async (req: Request) => {
   }
 
   const authorization = req.headers.get("Authorization") || "";
-  const bearer = authorization.match(/^Bearer\\s+(.+)$/i);
-  if (!bearer) {
+  const bearer = authorization.toLowerCase().startsWith("bearer ") ? [authorization.slice(0, 7), authorization.slice(7).trim()] : null;
+  if (!bearer || !bearer[1]) {
     return jsonResponse({ error: "Faça login como administrador para continuar." }, 401);
   }
 
@@ -96,7 +96,7 @@ Deno.serve(async (req: Request) => {
   if (!displayName || displayName.length > 80) {
     return jsonResponse({ error: "Informe o nome do usuário (até 80 caracteres)." }, 400);
   }
-  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || email.length > 254) {
+  if (!email.includes("@") || !email.split("@")[1]?.includes(".") || email.length > 254) {
     return jsonResponse({ error: "Informe um e-mail válido para usar como login." }, 400);
   }
   if (password.length < 8 || password.length > 72) {
