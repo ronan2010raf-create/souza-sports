@@ -1,0 +1,4 @@
+project_id = "atmkhujxejimbolckvrk"
+
+[functions.create-workspace-user]
+verify_jwt = true
