@@ -67,17 +67,30 @@ Deno.serve(async (req: Request) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const { data: membership, error: membershipError } = await admin
-    .from("souza_sports_workspace_members")
-    .select("workspace_id, role")
-    .eq("user_id", authData.user.id)
-    .maybeSingle();
+  // Confere a permissão usando a sessão autenticada do próprio administrador.
+  // O RPC é SECURITY DEFINER e já é utilizado pelo aplicativo principal.
+  const userClient = createClient(supabaseUrl, publishableKey, {
+    global: { headers: { Authorization: `Bearer ${bearer[1]}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 
-  if (membershipError) {
-    console.error("Erro ao conferir o administrador:", membershipError.message);
-    return jsonResponse({ error: "Não foi possível validar as permissões do administrador." }, 500);
+  const [{ data: workspaceId, error: workspaceError }, { data: userRole, error: roleError }] =
+    await Promise.all([
+      userClient.rpc("get_souza_workspace_id"),
+      userClient.rpc("get_souza_user_role"),
+    ]);
+
+  if (workspaceError || roleError) {
+    console.error("Falha ao consultar perfil do administrador:", {
+      workspaceError: workspaceError?.message || null,
+      roleError: roleError?.message || null,
+    });
+    return jsonResponse({
+      error: "Não foi possível consultar seu perfil no estoque. Confira se sua conta está vinculada ao estoque compartilhado e tente novamente.",
+    }, 500);
   }
-  if (!membership || membership.role !== "owner") {
+
+  if (!workspaceId || userRole !== "owner") {
     return jsonResponse({ error: "Somente o administrador principal pode criar usuários." }, 403);
   }
 
@@ -126,7 +139,7 @@ Deno.serve(async (req: Request) => {
   const { error: memberInsertError } = await admin
     .from("souza_sports_workspace_members")
     .insert({
-      workspace_id: membership.workspace_id,
+      workspace_id: workspaceId,
       user_id: created.user.id,
       role,
     });
