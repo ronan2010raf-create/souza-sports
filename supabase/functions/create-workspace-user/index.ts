@@ -146,16 +146,28 @@ Deno.serve(async (req: Request) => {
 
   if (memberInsertError) {
     const { error: rollbackError } = await admin.auth.admin.deleteUser(created.user.id);
-    if (rollbackError) console.error("Falha ao desfazer conta sem vínculo:", rollbackError.message);
+    const rollbackMessage = rollbackError
+      ? String(rollbackError.message || "falha não identificada").slice(0, 180)
+      : null;
 
-    console.error("Falha ao vincular usuário ao estoque:", memberInsertError.message);
+    const databaseMessage = String(memberInsertError.message || "Erro sem descrição").slice(0, 240);
+    const databaseCode = String(memberInsertError.code || "sem código").slice(0, 24);
+    console.error("Falha ao vincular usuário ao estoque:", {
+      code: databaseCode,
+      message: databaseMessage,
+      rollbackError: rollbackMessage,
+    });
+
+    let friendlyHint = "";
     if (role === "partner") {
-      return jsonResponse({
-        error: "A conta não foi vinculada. Para criar um Sócio, execute primeiro o script supabase-partner-role.sql no SQL Editor do Supabase. Nenhuma conta incompleta foi mantida.",
-      }, 400);
+      friendlyHint = " Confirme se o script supabase-partner-role.sql já foi executado no SQL Editor.";
     }
+    if (rollbackMessage) {
+      friendlyHint += " A limpeza automática da conta também falhou; confira Authentication > Users antes de repetir.";
+    }
+
     return jsonResponse({
-      error: "A conta não pôde ser vinculada ao estoque. Confira a configuração do banco de dados e tente novamente.",
+      error: `Não foi possível vincular o usuário ao estoque. Código: ${databaseCode}. Detalhe: ${databaseMessage}.${friendlyHint}`,
     }, 400);
   }
 
