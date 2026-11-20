@@ -149,15 +149,24 @@ body.role-collaborator #stock .actions button:first-child,body.role-collaborator
 <button class="btn secondary" style="width:100%;margin-top:10px" onclick="importBackup()">Restaurar dados</button>
 <div class="note">Atenção: limpar os dados do navegador ou trocar de aparelho pode apagar o estoque. Guarde o backup em local seguro. Para usar em mais de um aparelho, será necessária uma versão com banco de dados e sincronização online.</div></div></section>
 <section id="access" class="section"><h2>Usuários e acessos</h2><div class="panel">
- <p>Convide um sócio para trabalhar no mesmo estoque SOUZA SPORTS. Ele terá seu próprio e-mail e senha e poderá operar o aplicativo com os mesmos acessos de produtos, preços, compras, vendas, encomendas e relatórios.</p>
- <div class="note">Você continuará como administrador principal. Somente sua conta poderá gerar novos convites e administrar os acessos. O sócio terá os mesmos acessos operacionais que você, mas não poderá convidar ou administrar outros usuários.</div>
- <button class="btn green" style="width:100%;margin-top:14px" onclick="generateWorkspaceInvite()">＋ Gerar convite para sócio</button>
- <div id="inviteOutput" class="hidden" style="margin-top:14px">
-  <label for="inviteCodeOutput">Código de convite (compartilhe com o usuário)</label>
-  <input id="inviteCodeOutput" readonly>
-  <button class="btn secondary" style="width:100%;margin-top:8px" onclick="copyWorkspaceInvite()">Copiar código</button>
+ <h3 style="margin-top:0">Criar usuário e senha</h3>
+ <p>Cadastre o acesso antes de entregar os dados à pessoa. O login será o e-mail informado. A conta será criada e vinculada diretamente ao estoque, sem convite e sem confirmação por e-mail.</p>
+ <label for="newUserName">Nome do usuário</label><input id="newUserName" maxlength="80" placeholder="Nome completo">
+ <label for="newUserEmail">Login (e-mail)</label><input id="newUserEmail" type="email" autocomplete="off" placeholder="usuario@gmail.com">
+ <label for="newUserPassword">Senha de acesso (mínimo 8 caracteres)</label><input id="newUserPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Crie uma senha para o usuário">
+ <label for="newUserRole">Tipo de acesso</label>
+ <select id="newUserRole">
+  <option value="partner">Sócio — acesso operacional completo</option>
+  <option value="collaborator">Colaborador — vendas e entradas, com restrições</option>
+ </select>
+ <div class="note">Sócio pode cadastrar produtos, alterar preços, registrar compras, vendas e encomendas, além de consultar relatórios. Colaborador pode consultar o estoque e registrar vendas e entradas, mas não gerencia o catálogo, preços, encomendas ou relatórios.</div>
+ <button class="btn green" id="createWorkspaceUserBtn" style="width:100%;margin-top:14px" onclick="createWorkspaceUser()">＋ Criar acesso do usuário</button>
+ <div id="createdUserOutput" class="hidden" style="margin-top:16px;border-top:1px solid var(--line);padding-top:12px">
+  <strong>Acesso criado. Envie estes dados ao usuário:</strong>
+  <textarea id="createdUserCredentials" rows="5" readonly style="margin-top:8px"></textarea>
+  <button class="btn secondary" style="width:100%;margin-top:8px" onclick="copyCreatedUserCredentials()">Copiar dados de acesso</button>
  </div>
- <div id="accessMessage" class="muted" style="margin-top:12px"></div>
+ <div id="accessMessage" class="muted" style="margin-top:12px" aria-live="polite"></div>
 </div></section>
 <div class="footer">SOUZA SPORTS • Estoque compartilhado</div>
 </main>
@@ -259,6 +268,67 @@ async function joinWorkspaceFromInvite(){
   document.getElementById('joinInviteCode').value='';
   await initializeCloud(cloudUser);
  }catch(e){authMessage('Não foi possível aceitar o convite: '+(e.message||e),'error');}
+}
+async function createWorkspaceUser(){
+ if(!cloudReady||!cloudUser||workspaceRole!=='owner'){
+  document.getElementById('accessMessage').textContent='Somente o administrador principal pode criar usuários.';
+  return;
+ }
+ const displayName=document.getElementById('newUserName').value.trim();
+ const email=document.getElementById('newUserEmail').value.trim().toLowerCase();
+ const password=document.getElementById('newUserPassword').value;
+ const role=document.getElementById('newUserRole').value;
+ if(!displayName){document.getElementById('accessMessage').textContent='Informe o nome do usuário.';return}
+ if(!email||!/^\\S+@\\S+\\.\\S+$/.test(email)){document.getElementById('accessMessage').textContent='Informe um e-mail válido para usar como login.';return}
+ if(password.length<8){document.getElementById('accessMessage').textContent='A senha precisa ter pelo menos 8 caracteres.';return}
+ if(!['partner','collaborator'].includes(role)){document.getElementById('accessMessage').textContent='Selecione um tipo de acesso válido.';return}
+ const btn=document.getElementById('createWorkspaceUserBtn');
+ btn.disabled=true;btn.textContent='Criando usuário...';
+ document.getElementById('accessMessage').textContent='Criando a conta e vinculando ao estoque compartilhado...';
+ document.getElementById('createdUserOutput').classList.add('hidden');
+ try{
+  const {data,error}=await cloudClient.functions.invoke('create-workspace-user',{
+   body:{displayName,email,password,role}
+  });
+  if(error){
+   let message=error.message||'Não foi possível criar o usuário.';
+   try{const detail=await error.context?.json();if(detail?.error)message=detail.error}catch(_){}
+   throw new Error(message);
+  }
+  if(!data?.success)throw new Error(data?.error||'O Supabase não confirmou a criação do usuário.');
+  const roleLabel=role==='partner'?'Sócio':'Colaborador';
+  const credentials=[
+   'SOUZA SPORTS — DADOS DE ACESSO',
+   'Aplicativo: '+window.location.origin+window.location.pathname,
+   'Nome: '+displayName,
+   'Login: '+email,
+   'Senha: '+password,
+   'Perfil: '+roleLabel,
+   '',
+   'Entre no aplicativo usando o login e a senha informados.'
+  ].join('\\n');
+  document.getElementById('createdUserCredentials').value=credentials;
+  document.getElementById('createdUserOutput').classList.remove('hidden');
+  document.getElementById('newUserName').value='';
+  document.getElementById('newUserEmail').value='';
+  document.getElementById('newUserPassword').value='';
+  document.getElementById('accessMessage').textContent='Usuário criado e vinculado ao estoque. A conta já está confirmada e não foi enviado e-mail.';
+ }catch(e){
+  document.getElementById('accessMessage').textContent='Não foi possível criar o usuário: '+(e.message||e);
+ }finally{
+  btn.disabled=false;btn.textContent='＋ Criar acesso do usuário';
+ }
+}
+async function copyCreatedUserCredentials(){
+ const field=document.getElementById('createdUserCredentials');
+ if(!field.value)return;
+ try{
+  await navigator.clipboard.writeText(field.value);
+  document.getElementById('accessMessage').textContent='Dados de acesso copiados. Envie-os somente ao usuário correto.';
+ }catch(_){
+  field.focus();field.select();
+  document.getElementById('accessMessage').textContent='Selecione e copie os dados exibidos acima.';
+ }
 }
 async function generateWorkspaceInvite(){
  if(!cloudReady||workspaceRole!=='owner'){alert('Somente o administrador principal pode gerar convites.');return;}
