@@ -132,7 +132,7 @@ body.role-collaborator #stock .actions button:first-child,body.role-collaborator
   <p class="muted">Informe taxas iniciais ou posteriores, como frete, importação, impostos, alfândega e despachante. O total será dividido igualmente por todas as peças deste pedido.</p>
   <div class="grid2">
    <div><label>Descrição da taxa</label><input id="procurementCostDescription" placeholder="Ex.: Frete internacional"></div>
-   <div><label>Valor (R$)</label><input id="procurementCostAmount" type="number" min="0" step=".01" placeholder="0,00"></div>
+   <div><label>Valor (R$)</label><input id="procurementCostAmount" type="text" inputmode="decimal" placeholder="0,00"></div>
   </div>
   <button class="btn secondary" type="button" style="width:100%;margin-top:8px" onclick="addProcurementCost()">＋ Adicionar taxa / despesa</button>
   <div id="procurementCostsList"></div>
