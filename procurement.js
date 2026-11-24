@@ -227,10 +227,9 @@ function finalizeProcurement(order) {
         id: crypto.randomUUID(), type: "direct_sale", productId: item.productId || null,
         productName: item.productName, size: item.size, qty: item.qty, delta: 0,
         price: Number(item.unitSalePrice), discount: 0, cost: landedUnitCost,
-        customer: order.customer, customerContact: order.customerContact || "",
         supplier: order.supplier, note: order.note || "", procurementId: order.id,
-        detail: "Compra direta para " + order.customer + " • Fornecedor: " + order.supplier +
-          " • Custo final " + money(landedUnitCost) + " por peça",
+        detail: "Compra direta vinculada ao pedido " + (order.reference || order.id) +
+          " • Sem entrada no estoque • Custo final " + money(landedUnitCost) + " por peça",
         date: now
       });
       continue;
