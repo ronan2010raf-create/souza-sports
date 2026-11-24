@@ -65,3 +65,12 @@ CRIAR USUÁRIOS SEM CONFIRMAÇÃO DE E-MAIL
 - A função usa as variáveis seguras padrão do projeto Supabase (SUPABASE_URL, SUPABASE_PUBLISHABLE_KEYS e SUPABASE_SECRET_KEYS).
 - Somente membros com perfil owner podem criar usuários. Escolha Sócio (partner) ou Colaborador (collaborator).
 - O perfil Sócio exige que o script supabase-partner-role.sql esteja aplicado no banco.
+
+
+COMPRAS E IMPORTAÇÕES
+- A aba Compras e importações registra pedidos com vários produtos e tamanhos, fornecedor, referência, datas, rastreamento, etapa e custos adicionais.
+- Os valores de frete, importação, impostos, alfândega e demais despesas são divididos igualmente pelo total de peças do pedido.
+- O estoque só recebe as mercadorias quando o status é alterado para Recebido. O recebimento é processado uma única vez.
+- A compra direta para cliente cria movimentações de venda direta e não aumenta o estoque disponível.
+- As compras são sincronizadas pelo mesmo estoque compartilhado e incluídas no backup JSON.
+- Execute a versão atualizada de supabase-partner-role.sql no SQL Editor para preservar os pedidos de compra quando um colaborador registrar vendas ou entradas.
