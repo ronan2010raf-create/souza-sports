@@ -514,7 +514,8 @@ begin
     v_saved_data := jsonb_build_object(
       'products',v_saved_products,
       'moves',v_saved_moves,
-      'orders',v_old_data->'orders'
+      'orders',v_old_data->'orders',
+      'procurements',coalesce(v_old_data->'procurements','[]'::jsonb)
     );
   elsif v_role = 'owner' then
     v_saved_data := p_data;
