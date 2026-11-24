@@ -32,7 +32,7 @@ function procurementItemsFromForm() {
     kind: normalizeKind(row.querySelector('[data-field="kind"]')?.value || "Torcedor"),
     size: row.querySelector('[data-field="size"]')?.value || "",
     qty: Number(row.querySelector('[data-field="qty"]')?.value),
-    unitCost: Number(row.querySelector('[data-field="unitCost"]')?.value),
+    unitCost: row.querySelector('[data-field="unitCost"]')?.value.trim() === "" ? NaN : Number(row.querySelector('[data-field="unitCost"]').value),
     unitSalePrice: Number(row.querySelector('[data-field="unitSalePrice"]')?.value || 0)
   }));
 }
@@ -56,7 +56,7 @@ function onProcurementProductChange(select) {
     row.querySelector('[data-field="brand"]').value = product.brand || "";
     row.querySelector('[data-field="kind"]').value = normalizeKind(product.kind || "Torcedor");
     row.querySelector('[data-field="unitSalePrice"]').value = product.price || "";
-    renderProcurementItemSizes(row, product.kind === "Infantil" ? "16" : "P");
+    renderProcurementItemSizes(row, normalizeKind(product.kind) === "Infantil" ? "16" : "P");
   } else {
     row.querySelector('[data-field="name"]').value = "";
     row.querySelector('[data-field="team"]').value = "";
