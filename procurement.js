@@ -17,6 +17,22 @@ let procurementDraftCosts = [];
 function roundPurchaseCost(value) {
   return Math.round((Number(value || 0) + Number.EPSILON) * 1000000) / 1000000;
 }
+function parseProcurementMoney(value) {
+  const raw = String(value ?? "").trim().replace(/[R$\s]/g, "");
+  if (!raw) return NaN;
+  const comma = raw.lastIndexOf(",");
+  const dot = raw.lastIndexOf(".");
+  let normalized = raw;
+  if (comma >= 0 && dot >= 0) {
+    normalized = comma > dot
+      ? raw.replace(/\./g, "").replace(",", ".")
+      : raw.replace(/,/g, "");
+  } else if (comma >= 0) {
+    normalized = raw.replace(/\./g, "").replace(",", ".");
+  }
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
 function procurementTotalUnits(items) {
   return items.reduce((sum, item) => sum + Number(item.qty || 0), 0);
 }
@@ -32,8 +48,8 @@ function procurementItemsFromForm() {
     kind: normalizeKind(row.querySelector('[data-field="kind"]')?.value || "Torcedor"),
     size: row.querySelector('[data-field="size"]')?.value || "",
     qty: Number(row.querySelector('[data-field="qty"]')?.value),
-    unitCost: row.querySelector('[data-field="unitCost"]')?.value.trim() === "" ? NaN : Number(row.querySelector('[data-field="unitCost"]').value),
-    unitSalePrice: Number(row.querySelector('[data-field="unitSalePrice"]')?.value || 0)
+    unitCost: parseProcurementMoney(row.querySelector('[data-field="unitCost"]')?.value),
+    unitSalePrice: parseProcurementMoney(row.querySelector('[data-field="unitSalePrice"]')?.value || "0")
   }));
 }
 function renderProcurementItemSizes(row, selected = "") {
@@ -93,8 +109,9 @@ function addProcurementItem(item = {}) {
     '<div><label>Tipo</label><select data-field="kind" onchange="onProcurementKindChange(this)">' + kindOptions + "</select></div></div>" +
     '<div class="grid2"><div><label>Tamanho *</label><select data-field="size"><option value="">Selecione</option>' + sizeOptions + "</select></div>" +
     '<div><label>Quantidade *</label><input data-field="qty" type="number" min="1" step="1" value="' + (item.qty ?? 1) + '"></div></div>' +
-    '<div class="grid2"><div><label>Custo de compra por peça (R$) *</label><input data-field="unitCost" type="number" min="0" step=".01" value="' + (item.unitCost ?? "") + '" placeholder="0,00"></div>' +
-    '<div class="proc-sale-price"><label>Preço de venda por peça (R$) *</label><input data-field="unitSalePrice" type="number" min="0" step=".01" value="' + (item.unitSalePrice ?? "") + '" placeholder="0,00"></div></div>';
+    '<div class="grid2"><div><label>Custo de compra por peça (R$) *</label><input data-field="unitCost" type="text" inputmode="decimal" value="' + (item.unitCost ?? "") + '" placeholder="0,00"></div>' +
+    '<div class="proc-sale-price"><label>Preço de venda por peça (R$) *</label><input data-field="unitSalePrice" type="text" inputmode="decimal" value="' + (item.unitSalePrice ?? "") + '" placeholder="0,00"></div></div>' +
+    '<div class="muted procurement-item-cost-preview">Informe custo e quantidade para calcular o custo final.</div>';
   host.appendChild(row);
   updateProcurementDestination();
   updateProcurementSummary();
@@ -118,7 +135,7 @@ function updateProcurementDestination() {
 }
 function addProcurementCost() {
   const description = document.getElementById("procurementCostDescription").value.trim();
-  const amount = Number(document.getElementById("procurementCostAmount").value);
+  const amount = parseProcurementMoney(document.getElementById("procurementCostAmount").value);
   if (!description || !Number.isFinite(amount) || amount <= 0) {
     alert("Informe a descrição e um valor de taxa maior que zero.");
     return;
@@ -161,6 +178,19 @@ function updateProcurementSummary() {
   const goodsTotal = items.reduce((sum, item) => sum + item.qty * item.unitCost, 0);
   const extras = procurementCostsTotal(procurementDraftCosts);
   const extraPerPiece = units ? extras / units : 0;
+  document.querySelectorAll("#procurementItems .procurement-item").forEach(row => {
+    const preview = row.querySelector(".procurement-item-cost-preview");
+    if (!preview) return;
+    const qty = Number(row.querySelector('[data-field="qty"]')?.value);
+    const unitCost = parseProcurementMoney(row.querySelector('[data-field="unitCost"]')?.value);
+    if (!Number.isInteger(qty) || qty < 1 || !Number.isFinite(unitCost) || unitCost < 0) {
+      preview.textContent = "Informe quantidade e custo de compra válidos.";
+      return;
+    }
+    const landed = roundPurchaseCost(unitCost + extraPerPiece);
+    preview.textContent = "Custo final estimado: " + money(landed) +
+      " por peça • Total desta linha: " + money(landed * qty);
+  });
   el.innerHTML =
     "<div><b>Resumo do pedido</b></div>" +
     '<div class="row"><span>Quantidade total de peças</span><b>' + units + "</b></div>" +
@@ -222,6 +252,8 @@ function finalizeProcurement(order) {
   const now = new Date().toISOString();
   for (const item of items) {
     const landedUnitCost = roundPurchaseCost(Number(item.unitCost) + extraPerPiece);
+    item.allocatedExtraPerUnit = roundPurchaseCost(extraPerPiece);
+    item.landedUnitCost = landedUnitCost;
     if (order.destination === "direct") {
       db.moves.unshift({
         id: crypto.randomUUID(), type: "direct_sale", productId: item.productId || null,
@@ -312,6 +344,13 @@ function saveProcurement() {
   )) return;
 
   const now = new Date().toISOString();
+  const totalUnits = procurementTotalUnits(items);
+  const extraPerPiece = totalUnits ? procurementCostsTotal(procurementDraftCosts) / totalUnits : 0;
+  const itemsWithLandedCost = items.map(item => ({
+    ...item,
+    allocatedExtraPerUnit: roundPurchaseCost(extraPerPiece),
+    landedUnitCost: roundPurchaseCost(item.unitCost + extraPerPiece)
+  }));
   const history = old?.statusHistory ? JSON.parse(JSON.stringify(old.statusHistory)) : [];
   if (!history.length || old?.status !== status) history.push({ status, date: now });
   const order = {
@@ -324,7 +363,7 @@ function saveProcurement() {
     customer: destination === "direct" ? customer : "",
     customerContact: destination === "direct"
       ? document.getElementById("procurementCustomerContact").value.trim() : "",
-    items,
+    items: itemsWithLandedCost,
     costs: JSON.parse(JSON.stringify(procurementDraftCosts)),
     status,
     note: document.getElementById("procurementNote").value.trim(),
@@ -357,13 +396,18 @@ function renderProcurements() {
       sum + (Number(item.unitCost) || 0) * Number(item.qty || 0), 0
     );
     const extras = procurementCostsTotal(order.costs || []);
+    const extraPerPiece = units ? extras / units : 0;
     const totalCost = order.finalCost ?? (goods + extras);
     const destination = order.destination === "direct"
       ? "Venda direta para " + esc(order.customer)
       : "Entrada no estoque";
-    const itemsText = (order.items || []).map(item =>
-      esc(item.productName) + " (" + esc(item.size) + "): " + item.qty + " un."
-    ).join(" • ");
+    const itemsText = (order.items || []).map(item => {
+      const landed = Number.isFinite(Number(item.landedUnitCost))
+        ? Number(item.landedUnitCost)
+        : roundPurchaseCost((Number(item.unitCost) || 0) + extraPerPiece);
+      return esc(item.productName) + " (" + esc(item.size) + "): " + item.qty +
+        " un. • Custo final: " + money(landed) + "/peça";
+    }).join(" • ");
     const timeline = (order.statusHistory || []).slice(-5).map(step =>
       esc(step.status) + " — " + new Date(step.date).toLocaleString("pt-BR")
     ).join("<br>");
