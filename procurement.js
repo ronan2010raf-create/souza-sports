@@ -681,8 +681,11 @@ function renderFinancialDashboard() {
   }
   panel.classList.remove("hidden");
   const sales = (db.moves || []).filter(move => move.type === "sale" || move.type === "direct_sale");
-  const soldValue = sales.reduce((sum,move) => sum + (Number(move.price)||0)*(Number(move.qty)||0) - (Number(move.discount)||0), 0);
   const directOrders = (db.procurements || []).filter(order => order.destination === "direct" && order.status !== "Cancelado");
+  const postedDirectOrderIds = new Set(sales.filter(move => move.type === "direct_sale" && move.procurementId).map(move => move.procurementId));
+  const pendingDirectSales = directOrders.filter(order => !postedDirectOrderIds.has(order.id))
+    .reduce((sum,order) => sum + financeSaleTotal(order), 0);
+  const soldValue = sales.reduce((sum,move) => sum + (Number(move.price)||0)*(Number(move.qty)||0) - (Number(move.discount)||0), 0) + pendingDirectSales;
   const quickSales = (db.moves || []).filter(move => move.type === "sale");
   const quickSalesPaid = quickSales.reduce((sum,move) => sum + financePaidTotal(move.payments || []), 0);
   const quickSalesReceivable = quickSales.reduce((sum,move) => {
