@@ -760,20 +760,35 @@ function renderFinancialAlerts() {
       }
     });
   });
+  (db.orders || []).forEach(order => {
+    const balance = Math.max(0,(Number(order.total)||0)-(Number(order.paid)||0));
+    if (balance > 0 && order.due && order.due <= limit && order.status !== "Cancelado") {
+      const days = financeDateDiff(order.due);
+      alerts.push({
+        type:"order", orderId:order.id, overdue:days<0,
+        dueDate:order.due, amount:balance,
+        name:order.customer || "Cliente da encomenda",
+        note:days<0?"Atrasada há "+Math.abs(days)+" dia(s)":days===0?"Vence hoje":"Vence em "+days+" dia(s)",
+        contact:order.contact||"", index:alerts.length
+      });
+    }
+  });
   alerts.sort((a,b) => a.dueDate.localeCompare(b.dueDate));
-  const customerAlerts = alerts.filter(a => a.type === "customer" || a.type === "sale");
+  const customerAlerts = alerts.filter(a => a.type === "customer" || a.type === "sale" || a.type === "order");
   const supplierAlerts = alerts.filter(a => a.type === "supplier");
   function renderGroup(title,items,type) {
     if (!items.length) return '<div class="finance-alert-group"><b>' + title + '</b><div class="muted">Nenhum vencimento nos próximos 7 dias.</div></div>';
     return '<div class="finance-alert-group"><b>' + title + '</b>' + items.map(item => {
       const order = (db.procurements || []).find(x => x.id === item.orderId);
       const wa = item.type === "customer" || item.type === "sale" ? financeWhatsAppUrl(item.contact) : "";
-      const paymentAction = '<button class="btn secondary" type="button" onclick="openFinancePaymentManager(\'' +
-        esc(item.orderId) + '\',\'' + item.type + '\')">Ver parcelas / pagamento</button>';
+      const paymentAction = item.type === "order"
+        ? '<button class="btn secondary" type="button" onclick="addOrderPayment(\'' + esc(item.orderId) + '\')">Registrar recebimento</button>'
+        : '<button class="btn secondary" type="button" onclick="openFinancePaymentManager(\'' +
+          esc(item.orderId) + '\',\'' + item.type + '\')">Ver parcelas / pagamento</button>';
       return '<div class="finance-alert-item ' + (item.overdue?'overdue':'') + '">' +
         '<div class="row"><b>' + esc(item.name) + '</b><b>' + money(item.amount) + '</b></div>' +
         '<div class="muted">' + esc(item.note) + ' • Vencimento: ' + financeFormatDue(item.dueDate) +
-        (item.type === "customer" && order ? ' • Pedido: ' + esc(order.reference || "") : item.type === "supplier" ? ' • Fornecedor' : ' • Venda') + '</div>' +
+        (item.type === "customer" && order ? ' • Pedido: ' + esc(order.reference || "") : item.type === "supplier" ? ' • Fornecedor' : item.type === "order" ? ' • Encomenda personalizada' : ' • Venda') + '</div>' +
         '<div class="actions">' + paymentAction +
         (wa ? '<a href="' + wa + '" target="_blank" rel="noopener">Contato WhatsApp</a>' : '') +
         '</div></div>';
