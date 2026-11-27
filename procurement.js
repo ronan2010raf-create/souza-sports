@@ -780,7 +780,7 @@ function renderFinancialAlerts() {
     if (!items.length) return '<div class="finance-alert-group"><b>' + title + '</b><div class="muted">Nenhum vencimento nos próximos 7 dias.</div></div>';
     return '<div class="finance-alert-group"><b>' + title + '</b>' + items.map(item => {
       const order = (db.procurements || []).find(x => x.id === item.orderId);
-      const wa = item.type === "customer" || item.type === "sale" ? financeWhatsAppUrl(item.contact) : "";
+      const wa = item.type === "customer" || item.type === "sale" || item.type === "order" ? financeWhatsAppUrl(item.contact) : "";
       const paymentAction = item.type === "order"
         ? '<button class="btn secondary" type="button" onclick="addOrderPayment(\'' + esc(item.orderId) + '\')">Registrar recebimento</button>'
         : '<button class="btn secondary" type="button" onclick="openFinancePaymentManager(\'' +
