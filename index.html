@@ -30,6 +30,8 @@ body.role-collaborator #stock .actions button:first-child,body.role-collaborator
 .logout-btn{border:0;background:transparent;color:#d8e3ef;text-decoration:underline;font-size:11px;padding:5px}
 @media(max-width:390px){.sync-row{gap:5px}.sync-btn,.logout-btn{font-size:10px;padding:4px 6px}}
 
+
+.finance-dashboard{margin:2px 0 14px}.finance-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}.finance-metric{border:1px solid var(--line);border-radius:11px;padding:10px;background:#f8fafc;min-width:0}.finance-metric small{display:block;color:var(--muted);font-size:11px}.finance-metric strong{display:block;font-size:17px;margin-top:4px;overflow-wrap:anywhere}.finance-metric:nth-child(2) strong{color:var(--green)}.finance-metric:nth-child(3) strong,.finance-metric:nth-child(6) strong{color:var(--red)}.finance-alert-group{margin-top:14px}.finance-alert-item{border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:7px;background:#fff}.finance-alert-item.overdue{border-color:#e9b6b9;background:#fff8f8}.finance-alert-item .actions{margin-top:7px}.finance-alert-item .actions a{display:inline-block;text-decoration:none;border-radius:8px;padding:8px 9px;background:#eaf0f6;color:var(--navy);font-size:11px;font-weight:700}.finance-modal{position:fixed;inset:0;z-index:1001;background:#061426b8;display:grid;place-items:center;padding:12px}.finance-modal.hidden{display:none!important}.finance-dialog{width:min(100%,650px);max-height:92vh;overflow:auto;background:white;border-radius:16px;padding:15px;box-shadow:0 20px 70px #0005}.finance-payment-row{margin-top:9px;padding:11px}.finance-payment-row .grid2{margin-top:3px}.finance-payment-row input,.finance-payment-row select{font-size:13px;padding:9px}@media(min-width:600px){.finance-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:360px){.finance-metric strong{font-size:15px}.finance-dialog{padding:11px}}
 </style></head>
 <body>
 
@@ -63,6 +65,21 @@ body.role-collaborator #stock .actions button:first-child,body.role-collaborator
  <div class="stat"><small>Unidades vendidas</small><strong id="totalSold">0</strong></div>
  <div class="stat"><small>Valor em estoque (custo)</small><strong id="stockValue">R$ 0,00</strong></div>
 </div>
+
+<section id="financeDashboard" class="finance-dashboard panel">
+ <div class="row"><h2 style="margin:0">Resumo financeiro</h2><span class="tag">Visão geral</span></div>
+ <div class="finance-grid">
+  <div class="finance-metric"><small>Valor vendido</small><strong id="finSales">R$ 0,00</strong></div>
+  <div class="finance-metric"><small>Recebido dos clientes</small><strong id="finReceived">R$ 0,00</strong></div>
+  <div class="finance-metric"><small>A receber dos clientes</small><strong id="finReceivable">R$ 0,00</strong></div>
+  <div class="finance-metric"><small>Investido em mercadorias</small><strong id="finInvested">R$ 0,00</strong></div>
+  <div class="finance-metric"><small>Pago aos fornecedores</small><strong id="finSupplierPaid">R$ 0,00</strong></div>
+  <div class="finance-metric"><small>A pagar aos fornecedores</small><strong id="finSupplierDue">R$ 0,00</strong></div>
+ </div>
+ <p class="muted" style="margin:8px 0">O valor em estoque aparece no quadro acima. Os recebimentos e pagamentos dependem dos controles financeiros cadastrados nos pedidos.</p>
+ <div id="financeAlerts"></div>
+</section>
+
 <nav class="tabs">
 <button class="tab active" data-tab="stock">Estoque</button><button class="tab" data-tab="add">Cadastrar</button><button class="tab" data-tab="sale">Vender</button><button class="tab" data-tab="purchase">Compras / entrada</button><button class="tab" data-tab="procurement">Compras e importações</button><button class="tab" data-tab="orders">Encomendas</button><button class="tab" data-tab="reports">Relatórios</button><button class="tab" data-tab="history">Histórico</button><button class="tab" data-tab="backup">Backup</button><button class="tab" data-tab="access">Acessos</button>
 </nav>
@@ -152,6 +169,28 @@ body.role-collaborator #stock .actions button:first-child,body.role-collaborator
  </div>
  <div id="procurementsList"></div>
 </section>
+
+<div id="financePaymentModal" class="finance-modal hidden" role="dialog" aria-modal="true" aria-labelledby="financePaymentTitle">
+ <div class="finance-dialog">
+  <div class="row"><h2 id="financePaymentTitle" style="margin:0">Controle de pagamentos</h2><button class="btn secondary" type="button" onclick="closeFinancePaymentManager()">Fechar</button></div>
+  <div id="financePaymentContext" class="note"></div>
+  <h3>Gerar parcelas</h3>
+  <div class="grid2">
+   <div><label>Forma de pagamento</label><select id="financePaymentMethod" onchange="financePaymentMethodChanged()"><option>PIX</option><option>PIX parcelado</option><option>Dinheiro</option><option>Cartão de débito</option><option>Cartão de crédito</option><option>Transferência bancária</option><option>Boleto</option><option>A combinar</option><option>Outro</option></select></div>
+   <div><label>Quantidade de parcelas</label><input id="financePaymentCount" type="number" min="1" max="24" value="1"></div>
+  </div>
+  <div class="grid2">
+   <div><label>Vencimento da 1ª parcela</label><input id="financePaymentFirstDue" type="date"></div>
+   <div><label>Intervalo entre parcelas (dias)</label><input id="financePaymentInterval" type="number" min="1" max="365" value="30"></div>
+  </div>
+  <button class="btn secondary" type="button" style="width:100%;margin-top:10px" onclick="generateFinanceInstallments()">Gerar / atualizar parcelas</button>
+  <button class="btn secondary" type="button" style="width:100%;margin-top:8px" onclick="addFinancePaymentRow()">＋ Adicionar parcela manualmente</button>
+  <div id="financePaymentRows"></div>
+  <div id="financePaymentSummary" class="procurement-summary"></div>
+  <div class="note">Para registrar que uma parcela foi paga, preencha a data do pagamento. Deixe esse campo vazio enquanto estiver pendente. O aplicativo destacará vencimentos atrasados, de hoje e dos próximos 7 dias.</div>
+  <div class="form-actions"><button class="btn secondary" type="button" onclick="closeFinancePaymentManager()">Cancelar</button><button class="btn green" type="button" onclick="saveFinancePayments()">Salvar controle</button></div>
+ </div>
+</div>
 
 <section id="orders" class="section"><h2>Encomendas personalizadas</h2>
 <div class="panel">
@@ -570,7 +609,7 @@ function renderOrders(){const filter=document.getElementById('orderFilter')?.val
 function deleteOrder(id){if(confirm('Excluir esta encomenda?')){db.orders=db.orders.filter(o=>o.id!==id);persist();renderOrders()}}
 
 function renderReports(){const from=document.getElementById('dateFrom').value,to=document.getElementById('dateTo').value;const sales=db.moves.filter(m=>(m.type==='sale'||m.type==='direct_sale')&&(!from||m.date.slice(0,10)>=from)&&(!to||m.date.slice(0,10)<=to));const revenue=sales.reduce((a,m)=>a+m.price*m.qty-(m.discount||0),0),profit=sales.reduce((a,m)=>a+(m.price*m.qty-(m.discount||0))-(m.cost||0)*m.qty,0),units=sales.reduce((a,m)=>a+m.qty,0);document.getElementById('repRevenue').textContent=money(revenue);document.getElementById('repProfit').textContent=money(profit);document.getElementById('repUnits').textContent=units;document.getElementById('repOrders').textContent=sales.length;const groups={};sales.forEach(m=>{groups[m.productName]=(groups[m.productName]||0)+m.qty});document.getElementById('repProducts').innerHTML=Object.keys(groups).length?Object.entries(groups).sort((a,b)=>b[1]-a[1]).map(([n,v])=>`<div class="row" style="padding:8px 0;border-bottom:1px solid var(--line)"><span>${esc(n)}</span><b>${v} un.</b></div>`).join(''):'Nenhuma venda no período.'}
-function renderAll(){const pieces=db.products.reduce((a,p)=>a+total(p),0),sold=db.moves.filter(m=>m.type==='sale'||m.type==='direct_sale').reduce((a,m)=>a+m.qty,0),value=db.products.reduce((a,p)=>a+total(p)*p.cost,0);document.getElementById('totalPieces').textContent=pieces;document.getElementById('totalModels').textContent=db.products.length;document.getElementById('totalSold').textContent=sold;document.getElementById('stockValue').textContent=money(value);renderProducts();if(document.getElementById('history').classList.contains('active'))renderHistory();if(document.getElementById('reports').classList.contains('active'))renderReports();if(document.getElementById('orders').classList.contains('active'))renderOrders();if(document.getElementById('procurement')?.classList.contains('active')&&typeof renderProcurements==='function')renderProcurements()}
+function renderAll(){const pieces=db.products.reduce((a,p)=>a+total(p),0),sold=db.moves.filter(m=>m.type==='sale'||m.type==='direct_sale').reduce((a,m)=>a+m.qty,0),value=db.products.reduce((a,p)=>a+total(p)*p.cost,0);document.getElementById('totalPieces').textContent=pieces;document.getElementById('totalModels').textContent=db.products.length;document.getElementById('totalSold').textContent=sold;document.getElementById('stockValue').textContent=money(value);if(typeof renderFinancialDashboard==='function')renderFinancialDashboard();renderProducts();if(document.getElementById('history').classList.contains('active'))renderHistory();if(document.getElementById('reports').classList.contains('active'))renderReports();if(document.getElementById('orders').classList.contains('active'))renderOrders();if(document.getElementById('procurement')?.classList.contains('active')&&typeof renderProcurements==='function')renderProcurements()}
 function exportBackup(){const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='backup-meu-estoque-camisas.json';a.click();URL.revokeObjectURL(a.href)}
 function importBackup(){const f=document.getElementById('restoreFile').files[0];if(!f){alert('Escolha um arquivo de backup.');return}const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d.products)||!Array.isArray(d.moves))throw 0;if(!confirm('Restaurar substituirá os dados atuais deste aparelho. Continuar?'))return;db=normalizeData(d);persist();alert('Backup restaurado!')}catch(e){alert('Arquivo inválido ou incompatível.')}};r.readAsText(f)}
 renderAll();
