@@ -511,7 +511,7 @@ function openFinancePaymentManager(orderId, mode) {
       ? "Cliente: " + (order.customer || "Não informado") + " • Pedido: " + (order.reference || order.id)
       : "Fornecedor: " + (order.supplier || "Não informado") + " • Pedido: " + (order.reference || order.id)) +
     " • Valor total: " + money(expected);
-  document.getElementById("financePaymentMethod").value = "PIX";
+  document.getElementById("financePaymentMethod").value = financePaymentMode === "supplier" ? "A combinar" : "PIX";
   document.getElementById("financePaymentCount").value = 1;
   document.getElementById("financePaymentFirstDue").value = financeToday();
   document.getElementById("financePaymentInterval").value = 30;
@@ -672,12 +672,19 @@ function renderFinancialDashboard() {
   const sales = (db.moves || []).filter(move => move.type === "sale" || move.type === "direct_sale");
   const soldValue = sales.reduce((sum,move) => sum + (Number(move.price)||0)*(Number(move.qty)||0) - (Number(move.discount)||0), 0);
   const directOrders = (db.procurements || []).filter(order => order.destination === "direct" && order.status !== "Cancelado");
+  const quickSales = (db.moves || []).filter(move => move.type === "sale");
+  const quickSalesPaid = quickSales.reduce((sum,move) => sum + financePaidTotal(move.payments || []), 0);
+  const quickSalesReceivable = quickSales.reduce((sum,move) => {
+    if (!Array.isArray(move.payments)) return sum;
+    const saleTotal = Math.max(0,(Number(move.price)||0)*(Number(move.qty)||0)-(Number(move.discount)||0));
+    return sum + Math.max(0,saleTotal-financePaidTotal(move.payments));
+  }, 0);
   const clientReceived = directOrders.reduce((sum,order) => sum + financePaidTotal(order.customerPayments || []), 0) +
-    (db.orders || []).reduce((sum,order) => sum + (Number(order.paid)||0), 0);
+    quickSalesPaid + (db.orders || []).reduce((sum,order) => sum + (Number(order.paid)||0), 0);
   const clientReceivable = directOrders.reduce((sum,order) => {
     if (!order.customerPaymentTracking && !Array.isArray(order.customerPayments)) return sum;
     return sum + Math.max(0, financeSaleTotal(order) - financePaidTotal(order.customerPayments || []));
-  }, 0) + (db.orders || []).filter(order => order.status !== "Cancelado")
+  }, 0) + quickSalesReceivable + (db.orders || []).filter(order => order.status !== "Cancelado")
     .reduce((sum,order) => sum + Math.max(0,(Number(order.total)||0)-(Number(order.paid)||0)),0);
   const supplierOrders = (db.procurements || []).filter(order => order.status !== "Cancelado");
   const invested = supplierOrders.reduce((sum,order) => sum + financeSupplierTotal(order),0);
@@ -728,6 +735,20 @@ function renderFinancialAlerts() {
       }
     });
   });
+  (db.moves || []).filter(move => move.type === "sale").forEach(move => {
+    (move.payments || []).forEach(payment => {
+      if (!payment.paidAt && payment.dueDate && payment.dueDate <= limit) {
+        const days = financeDateDiff(payment.dueDate);
+        alerts.push({
+          type:"sale", orderId:move.id, paymentId:payment.id, overdue:days<0,
+          dueDate:payment.dueDate, amount:Number(payment.amount)||0,
+          name:move.customer || move.productName || "Venda",
+          note:days<0?"Atrasada há "+Math.abs(days)+" dia(s)":days===0?"Vence hoje":"Vence em "+days+" dia(s)",
+          contact:move.customerContact||"", index:alerts.length
+        });
+      }
+    });
+  });
   alerts.sort((a,b) => a.dueDate.localeCompare(b.dueDate));
   const customerAlerts = alerts.filter(a => a.type === "customer");
   const supplierAlerts = alerts.filter(a => a.type === "supplier");
@@ -735,19 +756,37 @@ function renderFinancialAlerts() {
     if (!items.length) return '<div class="finance-alert-group"><b>' + title + '</b><div class="muted">Nenhum vencimento nos próximos 7 dias.</div></div>';
     return '<div class="finance-alert-group"><b>' + title + '</b>' + items.map(item => {
       const order = (db.procurements || []).find(x => x.id === item.orderId);
-      const wa = item.type === "customer" ? financeWhatsAppUrl(item.contact) : "";
+      const wa = item.type === "customer" || item.type === "sale" ? financeWhatsAppUrl(item.contact) : "";
+      const paymentAction = item.type === "sale"
+        ? '<button class="btn secondary" type="button" onclick="markFinancePaymentPaid(\'sale\',\'' + esc(item.orderId) + '\',\'' + esc(item.paymentId) + '\')">Marcar como pago</button>'
+        : '<button class="btn secondary" type="button" onclick="openFinancePaymentManager(\'' + esc(item.orderId) + '\',\'' + item.type + '\')">Ver pagamento</button>';
       return '<div class="finance-alert-item ' + (item.overdue?'overdue':'') + '">' +
         '<div class="row"><b>' + esc(item.name) + '</b><b>' + money(item.amount) + '</b></div>' +
         '<div class="muted">' + esc(item.note) + ' • Vencimento: ' + financeFormatDue(item.dueDate) +
-        (item.type === "customer" ? ' • Pedido: ' + esc(order?.reference || "") : ' • Fornecedor') + '</div>' +
-        '<div class="actions">' +
-        '<button class="btn secondary" type="button" onclick="openFinancePaymentManager(\'' + esc(item.orderId) + '\',\'' + item.type + '\')">Ver pagamento</button>' +
+        (item.type === "customer" && order ? ' • Pedido: ' + esc(order.reference || "") : item.type === "supplier" ? ' • Fornecedor' : ' • Venda') + '</div>' +
+        '<div class="actions">' + paymentAction +
         (wa ? '<a href="' + wa + '" target="_blank" rel="noopener">Contato WhatsApp</a>' : '') +
         '</div></div>';
     }).join("") + '</div>';
   }
   host.innerHTML = renderGroup("Cobranças de clientes",customerAlerts,"customer") +
     renderGroup("Contas a pagar aos fornecedores",supplierAlerts,"supplier");
+}
+function markFinancePaymentPaid(type,recordId,paymentId) {
+  let rows = null;
+  if (type === "sale") {
+    const move = (db.moves || []).find(item => item.id === recordId);
+    rows = move?.payments;
+  } else {
+    const order = (db.procurements || []).find(item => item.id === recordId);
+    rows = type === "supplier" ? order?.supplierPayments : order?.customerPayments;
+  }
+  const payment = (rows || []).find(item => item.id === paymentId);
+  if (!payment || payment.paidAt) return;
+  if (!confirm("Confirmar que o pagamento de " + money(payment.amount) + " foi recebido / pago hoje?")) return;
+  payment.paidAt = financeToday();
+  persist();
+  renderFinancialDashboard();
 }
 function renderProcurements() {
   const el = document.getElementById("procurementsList");
@@ -779,9 +818,13 @@ function renderProcurements() {
       esc(step.status) + " — " + new Date(step.date).toLocaleString("pt-BR")
     ).join("<br>");
     const paymentInfo = order.destination === "direct"
-      ? '<div class="muted" style="margin-top:6px">Cliente: recebido ' + money(customerPaid) + ' • falta receber ' + money(customerBalance) + '</div>'
+      ? (order.customerPaymentTracking || Array.isArray(order.customerPayments)
+        ? '<div class="muted" style="margin-top:6px">Cliente: recebido ' + money(customerPaid) + ' • falta receber ' + money(customerBalance) + '</div>'
+        : '<div class="muted" style="margin-top:6px">Pagamento do cliente ainda não configurado.</div>')
       : "";
-    const supplierInfo = '<div class="muted">Fornecedor: pago ' + money(supplierPaidAmount) + ' • falta pagar ' + money(supplierBalance) + '</div>';
+    const supplierInfo = order.supplierPaymentTracking || Array.isArray(order.supplierPayments)
+      ? '<div class="muted">Fornecedor: pago ' + money(supplierPaidAmount) + ' • falta pagar ' + money(supplierBalance) + '</div>'
+      : '<div class="muted">Pagamento ao fornecedor ainda não configurado.</div>';
     return '<article class="panel procurement-card">' +
       '<div class="row"><b>' + esc(order.supplier) + '</b><span class="tag">' + esc(order.status) + '</span></div>' +
       '<div class="muted">' + esc(order.reference || "Sem referência") + " • Compra em " + esc(order.orderDate || "") + '</div>' +
@@ -804,6 +847,8 @@ function renderProcurements() {
 }
 
 function financeInitialize() {
+  const saleDate = document.getElementById("salePaymentFirstDue");
+  if (saleDate && !saleDate.value) saleDate.value = financeToday();
   const rows = document.getElementById("financePaymentRows");
   if (rows) {
     rows.addEventListener("input",updateFinancePaymentSummary);
