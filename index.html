@@ -180,6 +180,12 @@ body.role-collaborator #stock .actions button:first-child,body.role-collaborator
  <div class="finance-dialog">
   <div class="row"><h2 id="financePaymentTitle" style="margin:0">Controle de pagamentos</h2><button class="btn secondary" type="button" onclick="closeFinancePaymentManager()">Fechar</button></div>
   <div id="financePaymentContext" class="note"></div>
+  <div id="financeCustomerFields" class="panel hidden" style="margin-top:10px">
+   <h3 style="margin:0 0 6px">Dados do cliente da venda direta</h3>
+   <label>Nome do cliente</label><input id="financeCustomerName" placeholder="Nome do cliente">
+   <label>Contato do cliente (WhatsApp / telefone)</label><input id="financeCustomerContact" placeholder="DDD + telefone para cobrança">
+   <div class="muted">Esses dados podem ser atualizados mesmo depois de o pedido estar marcado como Recebido. O registro de entrada/venda não será repetido.</div>
+  </div>
   <h3>Gerar parcelas</h3>
   <div class="grid2">
    <div><label>Forma de pagamento</label><select id="financePaymentMethod" onchange="financePaymentMethodChanged()"><option>PIX</option><option>PIX parcelado</option><option>Dinheiro</option><option>Cartão de débito</option><option>Cartão de crédito</option><option>Transferência bancária</option><option>Boleto</option><option>A combinar</option><option>Outro</option></select></div>
