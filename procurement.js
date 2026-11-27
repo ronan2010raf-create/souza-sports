@@ -482,6 +482,10 @@ function financePaidTotal(rows) {
   return (rows || []).filter(row => row.paidAt).reduce((sum,row) => sum + (Number(row.amount) || 0), 0);
 }
 function financeExpectedTotal() {
+  if (financePaymentMode === "sale") {
+    const move = (db.moves || []).find(x => x.id === financePaymentOrderId);
+    return move ? Math.max(0,(Number(move.price)||0)*(Number(move.qty)||0)-(Number(move.discount)||0)) : 0;
+  }
   const order = (db.procurements || []).find(x => x.id === financePaymentOrderId);
   if (!order) return 0;
   return financePaymentMode === "customer" ? financeSaleTotal(order) : financeSupplierTotal(order);
@@ -497,20 +501,22 @@ function openFinancePaymentManager(orderId, mode) {
     alert("Somente o administrador ou o sócio pode acessar os controles financeiros.");
     return;
   }
-  const order = (db.procurements || []).find(x => x.id === orderId);
-  if (!order) return;
+  financePaymentMode = mode === "supplier" ? "supplier" : mode === "sale" ? "sale" : "customer";
+  const saleMove = financePaymentMode === "sale" ? (db.moves || []).find(x => x.id === orderId) : null;
+  const order = financePaymentMode === "sale" ? null : (db.procurements || []).find(x => x.id === orderId);
+  if (!order && !saleMove) return;
   financePaymentOrderId = orderId;
-  financePaymentMode = mode === "supplier" ? "supplier" : "customer";
-  const existing = financePaymentMode === "customer" ? order.customerPayments : order.supplierPayments;
+  const existing = financePaymentMode === "sale" ? saleMove.payments : financePaymentMode === "customer" ? order.customerPayments : order.supplierPayments;
   financePaymentDraft = Array.isArray(existing) ? JSON.parse(JSON.stringify(existing)) : [];
-  const title = financePaymentMode === "customer" ? "Pagamentos do cliente" : "Pagamentos ao fornecedor";
+  const title = financePaymentMode === "customer" ? "Pagamentos do cliente" : financePaymentMode === "supplier" ? "Pagamentos ao fornecedor" : "Parcelas da venda";
   document.getElementById("financePaymentTitle").textContent = title;
   const expected = financeExpectedTotal();
-  document.getElementById("financePaymentContext").textContent =
-    (financePaymentMode === "customer"
+  document.getElementById("financePaymentContext").textContent = financePaymentMode === "sale"
+    ? "Cliente: " + (saleMove.customer || "Não informado") + " • Produto: " + (saleMove.productName || "") + " • Valor total: " + money(expected)
+    : (financePaymentMode === "customer"
       ? "Cliente: " + (order.customer || "Não informado") + " • Pedido: " + (order.reference || order.id)
       : "Fornecedor: " + (order.supplier || "Não informado") + " • Pedido: " + (order.reference || order.id)) +
-    " • Valor total: " + money(expected);
+      " • Valor total: " + money(expected);
   document.getElementById("financePaymentMethod").value = financePaymentMode === "supplier" ? "A combinar" : "PIX";
   document.getElementById("financePaymentCount").value = 1;
   document.getElementById("financePaymentFirstDue").value = financeToday();
@@ -622,7 +628,8 @@ function updateFinancePaymentSummary() {
 }
 function saveFinancePayments() {
   const order = (db.procurements || []).find(x => x.id === financePaymentOrderId);
-  if (!order) return;
+  const saleMove = financePaymentMode === "sale" ? (db.moves || []).find(x => x.id === financePaymentOrderId) : null;
+  if (financePaymentMode === "sale" ? !saleMove : !order) return;
   const rows = readFinancePaymentRows();
   const expected = financeExpectedTotal();
   if (!rows.length) {
@@ -641,11 +648,15 @@ function saveFinancePayments() {
   if (financePaymentMode === "customer") {
     order.customerPayments = rows;
     order.customerPaymentTracking = true;
-  } else {
+    order.updatedAt = new Date().toISOString();
+  } else if (financePaymentMode === "supplier") {
     order.supplierPayments = rows;
     order.supplierPaymentTracking = true;
+    order.updatedAt = new Date().toISOString();
+  } else {
+    saleMove.payments = rows;
+    saleMove.updatedAt = new Date().toISOString();
   }
-  order.updatedAt = new Date().toISOString();
   persist();
   closeFinancePaymentManager();
   renderProcurements();
@@ -757,9 +768,8 @@ function renderFinancialAlerts() {
     return '<div class="finance-alert-group"><b>' + title + '</b>' + items.map(item => {
       const order = (db.procurements || []).find(x => x.id === item.orderId);
       const wa = item.type === "customer" || item.type === "sale" ? financeWhatsAppUrl(item.contact) : "";
-      const paymentAction = item.type === "sale"
-        ? '<button class="btn secondary" type="button" onclick="markFinancePaymentPaid(\'sale\',\'' + esc(item.orderId) + '\',\'' + esc(item.paymentId) + '\')">Marcar como pago</button>'
-        : '<button class="btn secondary" type="button" onclick="openFinancePaymentManager(\'' + esc(item.orderId) + '\',\'' + item.type + '\')">Ver pagamento</button>';
+      const paymentAction = '<button class="btn secondary" type="button" onclick="openFinancePaymentManager(\'' +
+        esc(item.orderId) + '\',\'' + item.type + '\')">Ver parcelas / pagamento</button>';
       return '<div class="finance-alert-item ' + (item.overdue?'overdue':'') + '">' +
         '<div class="row"><b>' + esc(item.name) + '</b><b>' + money(item.amount) + '</b></div>' +
         '<div class="muted">' + esc(item.note) + ' • Vencimento: ' + financeFormatDue(item.dueDate) +
@@ -864,3 +874,28 @@ function financeInitialize() {
   }
 }
 financeInitialize();
+
+
+function renderHistory() {
+  const f = document.getElementById("historyFilter").value;
+  const arr = (db.moves || []).filter(m => f === "all" || m.type === f);
+  const host = document.getElementById("historyList");
+  host.innerHTML = arr.length ? arr.map(m => {
+    const direct = m.type === "direct_sale";
+    const label = direct ? "Venda direta" : m.type === "sale" ? "Venda" : m.type === "entry" ? "Entrada" : "Ajuste";
+    const qty = direct ? '<span class="tag">Sem entrada no estoque</span>' :
+      '<span class="' + (m.delta > 0 ? "positive" : "negative") + '">' +
+      (m.delta > 0 ? "+" : "−") + m.qty + " un.</span>";
+    const methods = [...new Set((m.payments || []).map(p => p.method).filter(Boolean))].join(", ");
+    const paymentButton = m.type === "sale"
+      ? '<div class="actions"><button class="btn secondary" onclick="openFinancePaymentManager(\'' + esc(m.id) + '\',\'sale\')">Ver / atualizar pagamentos</button></div>'
+      : "";
+    return '<div class="movement"><div class="row"><b>' + esc(m.productName) + '</b>' + qty + '</div>' +
+      '<div class="muted">' + label + " • Tam. " + esc(m.size) + " • " + new Date(m.date).toLocaleString("pt-BR") + "</div>" +
+      '<div class="muted">' + esc(m.detail || m.note || "") +
+      ((m.type === "sale" || direct) ? " • Total: " + money(m.price*m.qty-(m.discount||0)) : "") +
+      (m.customer ? " • Cliente: " + esc(m.customer) : "") +
+      (m.supplier ? " • Fornecedor: " + esc(m.supplier) : "") +
+      (methods ? " • Pagamento: " + esc(methods) : "") + "</div>" + paymentButton + "</div>";
+  }).join("") : '<div class="empty">Nenhuma movimentação registrada.</div>';
+}
