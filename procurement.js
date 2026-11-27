@@ -363,6 +363,10 @@ function saveProcurement() {
     customer: destination === "direct" ? customer : "",
     customerContact: destination === "direct"
       ? document.getElementById("procurementCustomerContact").value.trim() : "",
+    customerPaymentTracking: destination === "direct" ? true : Boolean(old?.customerPaymentTracking),
+    customerPayments: Array.isArray(old?.customerPayments) ? old.customerPayments : [],
+    supplierPaymentTracking: old ? Boolean(old.supplierPaymentTracking) : true,
+    supplierPayments: Array.isArray(old?.supplierPayments) ? old.supplierPayments : [],
     items: itemsWithLandedCost,
     costs: JSON.parse(JSON.stringify(procurementDraftCosts)),
     status,
