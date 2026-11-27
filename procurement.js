@@ -750,7 +750,7 @@ function renderFinancialAlerts() {
     });
   });
   alerts.sort((a,b) => a.dueDate.localeCompare(b.dueDate));
-  const customerAlerts = alerts.filter(a => a.type === "customer");
+  const customerAlerts = alerts.filter(a => a.type === "customer" || a.type === "sale");
   const supplierAlerts = alerts.filter(a => a.type === "supplier");
   function renderGroup(title,items,type) {
     if (!items.length) return '<div class="finance-alert-group"><b>' + title + '</b><div class="muted">Nenhum vencimento nos próximos 7 dias.</div></div>';
@@ -814,12 +814,15 @@ function renderProcurements() {
     const supplierPaidAmount = financePaidTotal(order.supplierPayments || []);
     const supplierBalance = Math.max(0,financeSupplierTotal(order)-supplierPaidAmount);
     const customerBalance = Math.max(0,customerTotal-customerPaid);
+    const customerMethods = [...new Set((order.customerPayments || []).map(row => row.method).filter(Boolean))].join(", ");
+    const customerInstallments = (order.customerPayments || []).length;
     const timeline = (order.statusHistory || []).slice(-5).map(step =>
       esc(step.status) + " — " + new Date(step.date).toLocaleString("pt-BR")
     ).join("<br>");
     const paymentInfo = order.destination === "direct"
       ? (order.customerPaymentTracking || Array.isArray(order.customerPayments)
-        ? '<div class="muted" style="margin-top:6px">Cliente: recebido ' + money(customerPaid) + ' • falta receber ' + money(customerBalance) + '</div>'
+        ? '<div class="muted" style="margin-top:6px">Cliente: recebido ' + money(customerPaid) + ' • falta receber ' + money(customerBalance) +
+          (customerMethods ? ' • ' + esc(customerMethods) + (customerInstallments > 1 ? ' (' + customerInstallments + 'x)' : '') : '') + '</div>'
         : '<div class="muted" style="margin-top:6px">Pagamento do cliente ainda não configurado.</div>')
       : "";
     const supplierInfo = order.supplierPaymentTracking || Array.isArray(order.supplierPayments)
