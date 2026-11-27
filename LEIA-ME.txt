@@ -74,3 +74,13 @@ COMPRAS E IMPORTAÇÕES
 - A compra direta para cliente cria movimentações de venda direta e não aumenta o estoque disponível.
 - As compras são sincronizadas pelo mesmo estoque compartilhado e incluídas no backup JSON.
 - Execute a versão atualizada de supabase-partner-role.sql no SQL Editor para preservar os pedidos de compra quando um colaborador registrar vendas ou entradas.
+
+
+CONTROLE FINANCEIRO E COBRANÇAS
+- No painel principal, o resumo financeiro apresenta valor vendido, recebimentos cadastrados, valores a receber, compras/investimento, valores pagos a fornecedores e contas a pagar.
+- Na aba Vender, registre nome e contato do cliente, forma de pagamento, quantidade de parcelas, vencimento inicial e intervalo. Para PIX parcelado em duas vezes, escolha PIX parcelado; o aplicativo sugere 2 parcelas.
+- No Histórico, use “Ver / atualizar pagamentos” para revisar valores, forma de pagamento, vencimentos e datas de pagamento de cada parcela.
+- Em Compras e importações, use “Pagamentos do cliente” para controlar recebimentos das vendas diretas e “Pagamento ao fornecedor” para registrar parcelas e pagamentos feitos ao fornecedor.
+- As cobranças vencidas, do dia e dos próximos 7 dias aparecem no painel principal. Quando há telefone cadastrado, o atalho WhatsApp permite entrar em contato com o cliente.
+- Os avisos são exibidos dentro do aplicativo enquanto ele está aberto. Notificações automáticas com o aplicativo totalmente fechado exigem configuração adicional de push.
+- Pedidos antigos sem controle de pagamento precisam ser configurados manualmente nos botões de pagamentos antes de serem incluídos nos valores recebidos/a receber e pagos/a pagar.
