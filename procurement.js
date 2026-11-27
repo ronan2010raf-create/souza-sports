@@ -510,6 +510,15 @@ function openFinancePaymentManager(orderId, mode) {
   financePaymentDraft = Array.isArray(existing) ? JSON.parse(JSON.stringify(existing)) : [];
   const title = financePaymentMode === "customer" ? "Pagamentos do cliente" : financePaymentMode === "supplier" ? "Pagamentos ao fornecedor" : "Parcelas da venda";
   document.getElementById("financePaymentTitle").textContent = title;
+  const customerFields = document.getElementById("financeCustomerFields");
+  if (customerFields) {
+    const showCustomerFields = financePaymentMode === "customer" && order?.destination === "direct";
+    customerFields.classList.toggle("hidden", !showCustomerFields);
+    if (showCustomerFields) {
+      document.getElementById("financeCustomerName").value = order.customer || "";
+      document.getElementById("financeCustomerContact").value = order.customerContact || "";
+    }
+  }
   const expected = financeExpectedTotal();
   document.getElementById("financePaymentContext").textContent = financePaymentMode === "sale"
     ? "Cliente: " + (saleMove.customer || "Não informado") + " • Produto: " + (saleMove.productName || "") + " • Valor total: " + money(expected)
@@ -632,7 +641,8 @@ function saveFinancePayments() {
   if (financePaymentMode === "sale" ? !saleMove : !order) return;
   const rows = readFinancePaymentRows();
   const expected = financeExpectedTotal();
-  if (!rows.length) {
+  const allowCustomerDetailsOnly = financePaymentMode === "customer" && order?.destination === "direct";
+  if (!rows.length && !allowCustomerDetailsOnly) {
     alert("Cadastre ao menos uma parcela ou pagamento.");
     return;
   }
@@ -641,13 +651,17 @@ function saveFinancePayments() {
     return;
   }
   const total = rows.reduce((sum,row) => sum + row.amount, 0);
-  if (Math.abs(total - expected) > 0.02) {
+  if (rows.length && Math.abs(total - expected) > 0.02) {
     alert("As parcelas precisam somar o valor total do pedido (" + money(expected) + "). Total informado: " + money(total) + ".");
     return;
   }
   if (financePaymentMode === "customer") {
     order.customerPayments = rows;
     order.customerPaymentTracking = true;
+    if (order.destination === "direct") {
+      order.customer = document.getElementById("financeCustomerName").value.trim();
+      order.customerContact = document.getElementById("financeCustomerContact").value.trim();
+    }
     order.updatedAt = new Date().toISOString();
   } else if (financePaymentMode === "supplier") {
     order.supplierPayments = rows;
@@ -860,6 +874,7 @@ function renderProcurements() {
       '<div class="row"><b>' + esc(order.supplier) + '</b><span class="tag">' + esc(order.status) + '</span></div>' +
       '<div class="muted">' + esc(order.reference || "Sem referência") + " • Compra em " + esc(order.orderDate || "") + '</div>' +
       '<div class="muted">' + destination + (order.expectedDate ? " • Previsão: " + esc(order.expectedDate) : "") + '</div>' +
+      (order.destination === "direct" ? '<button class="btn green" type="button" style="width:100%;margin-top:9px" onclick="openFinancePaymentManager(\'' + esc(order.id) + '\',\'customer\')">Editar cliente e controlar pagamento</button>' : '') +
       '<div style="margin-top:8px">' + itemsText + '</div><div class="row" style="margin-top:8px"><span>' +
       units + ' peça(s)</span><b>' + money(order.destination === "direct" ? customerTotal : totalCost) + '</b></div>' +
       '<div class="muted">Custos adicionais: ' + money(extras) + ' • Rateio por peça: ' +
@@ -870,7 +885,6 @@ function renderProcurements() {
       '<details style="margin-top:8px"><summary class="muted">Histórico de etapas</summary><div class="procurement-timeline">' +
       (timeline || "Sem histórico") + '</div></details>' +
       '<div class="actions">' +
-      (order.destination === "direct" ? '<button class="btn secondary" type="button" onclick="openFinancePaymentManager(\'' + esc(order.id) + '\',\'customer\')">Pagamentos do cliente</button>' : '') +
       '<button class="btn secondary" type="button" onclick="openFinancePaymentManager(\'' + esc(order.id) + '\',\'supplier\')">Pagamento ao fornecedor</button>' +
       (!order.receivedAt ? '<button class="btn secondary" type="button" onclick="editProcurement(\'' + esc(order.id) + '\')">Editar pedido e etapa</button>' : '') +
       '</div></article>';
